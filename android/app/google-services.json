@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "191633865917",
+    "project_id": "circleup-cf99a",
+    "storage_bucket": "circleup-cf99a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:191633865917:android:c5b9bea9a18e6761ee8bd4",
+        "android_client_info": {
+          "package_name": "com.example.circleup"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "191633865917-a6ibnndhatnub9t4q528qmfqho9joovq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.circleup",
+            "certificate_hash": "c77b96107a6b3c9c92ce7f057683b45a39fa2890"
+          }
+        },
+        {
+          "client_id": "191633865917-vq8rl7u7s73jvkvqp6ktbvunba3mlj0j.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.circleup",
+            "certificate_hash": "b8a706157840a673fab3ba3f9e089d041c4bbec8"
+          }
+        },
+        {
+          "client_id": "191633865917-sesgn2015a87skvkjugsdh9vr93l69r8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCFjPm8dsJFJoSxesD1H_v7RSkeSxSnwpA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "191633865917-sesgn2015a87skvkjugsdh9vr93l69r8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
