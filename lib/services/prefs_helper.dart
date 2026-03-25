@@ -5,6 +5,7 @@ class PrefsHelper {
   static const String _keyUserName = 'userName';
   static const String _keyCurrentIntent = 'currentIntent';
   static const String _keyCompletedOnboarding = 'completedOnboarding';
+  static const String _keyProfilePayload = 'profilePayload';
 
   static Future<void> saveUserId(String id) async {
     final prefs = await SharedPreferences.getInstance();
@@ -44,6 +45,16 @@ class PrefsHelper {
   static Future<bool> hasCompletedOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_keyCompletedOnboarding) ?? false;
+  }
+
+  static Future<void> saveProfilePayload(String payload) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyProfilePayload, payload);
+  }
+
+  static Future<String?> getProfilePayload() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyProfilePayload);
   }
 
   static Future<void> clearAll() async {

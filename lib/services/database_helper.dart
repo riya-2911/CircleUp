@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import '../models/profile_model.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -19,8 +20,9 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -50,6 +52,34 @@ CREATE TABLE connections (
   timestamp $integerType
 )
 ''');
+
+    await db.execute('''
+CREATE TABLE user_profiles (
+  userId $idType,
+  fullName $textType,
+  collegeOrProfession $textType,
+  shortBio TEXT,
+  interests $textType,
+  photoPath TEXT,
+  updatedAt $integerType
+)
+''');
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('''
+CREATE TABLE IF NOT EXISTS user_profiles (
+  userId TEXT PRIMARY KEY,
+  fullName TEXT NOT NULL,
+  collegeOrProfession TEXT NOT NULL,
+  shortBio TEXT,
+  interests TEXT NOT NULL,
+  photoPath TEXT,
+  updatedAt INTEGER NOT NULL
+)
+''');
+    }
   }
 
   Future<void> insertMessage(Map<String, dynamic> message) async {
@@ -65,6 +95,28 @@ CREATE TABLE connections (
       whereArgs: [connectionId],
       orderBy: 'timestamp ASC',
     );
+  }
+
+  Future<void> upsertUserProfile(ProfileModel profile) async {
+    final db = await instance.database;
+    await db.insert(
+      'user_profiles',
+      profile.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<ProfileModel?> getUserProfile(String userId) async {
+    final db = await instance.database;
+    final result = await db.query(
+      'user_profiles',
+      where: 'userId = ?',
+      whereArgs: [userId],
+      limit: 1,
+    );
+
+    if (result.isEmpty) return null;
+    return ProfileModel.fromMap(result.first);
   }
 
   Future<void> close() async {

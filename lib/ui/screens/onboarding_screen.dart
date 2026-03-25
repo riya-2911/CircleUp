@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'onboarding_page_1.dart';
 import 'onboarding_page_2.dart';
 import 'onboarding_page_3.dart';
-import 'package:circleup/services/prefs_helper.dart';
 import 'login_screen.dart';
 
 class DotGridPainter extends CustomPainter {
@@ -45,8 +44,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _finishOnboarding() async {
-    await PrefsHelper.setOnboardingCompleted();
-    
     if (!mounted) return;
 
     Navigator.of(context).pushReplacement(

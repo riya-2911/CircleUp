@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
-import 'intent_selection_screen.dart';
+import '../../services/prefs_helper.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,25 +15,20 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleGoogleSignIn() async {
     setState(() => _isGoogleLoading = true);
     try {
-      final result = await AuthService.signInWithGoogle();
-      if (result != null && mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          PageRouteBuilder(
-            transitionDuration: const Duration(milliseconds: 700),
-            pageBuilder: (context, animation, secondaryAnimation) => const IntentSelectionScreen(),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(
-                opacity: CurvedAnimation(parent: animation, curve: Curves.easeIn),
-                child: ScaleTransition(
-                  scale: Tween<double>(begin: 0.97, end: 1.0).animate(
-                    CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-                  ),
-                  child: child,
-                ),
-              );
-            },
+      final success = await AuthService.signInWithGoogle();
+      if (success && mounted) {
+        await PrefsHelper.setOnboardingCompleted();
+        final userId = AuthService.currentUser?.uid ?? 'local_${DateTime.now().millisecondsSinceEpoch}';
+        final displayName = AuthService.displayName.trim().isEmpty ? 'User' : AuthService.displayName;
+        await PrefsHelper.saveUserId(userId);
+        await PrefsHelper.saveUserName(displayName);
+        Navigator.pushReplacementNamed(context, '/profile-setup');
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Google sign-in was cancelled.'),
+            backgroundColor: Colors.orange,
           ),
-          (route) => false,
         );
       }
     } catch (e) {
