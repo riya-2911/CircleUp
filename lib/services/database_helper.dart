@@ -1,3 +1,25 @@
+  // --- POSTS CRUD ---
+  Future<void> insertPost(UserPostModel post) async {
+    final db = await instance.database;
+    await db.insert('posts', post.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<UserPostModel>> getAllPosts() async {
+    final db = await instance.database;
+    final result = await db.query('posts', orderBy: 'createdAt DESC');
+    return result.map((e) => UserPostModel.fromMap(e)).toList();
+  }
+
+  Future<List<UserPostModel>> getPostsByUser(String userId) async {
+    final db = await instance.database;
+    final result = await db.query('posts', where: 'userId = ?', whereArgs: [userId], orderBy: 'createdAt DESC');
+    return result.map((e) => UserPostModel.fromMap(e)).toList();
+  }
+
+  Future<void> clearPosts() async {
+    final db = await instance.database;
+    await db.delete('posts');
+  }
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/profile_model.dart';
