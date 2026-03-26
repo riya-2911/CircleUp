@@ -14,6 +14,8 @@ import 'ui/screens/profile_setup_screen.dart';
 import 'ui/screens/main_navigation_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/intent_provider.dart';
+import 'providers/profile_provider.dart';
+import 'providers/post_provider.dart';
 
 import 'package:flutter/foundation.dart';
 
@@ -44,6 +46,8 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()..checkLoginStatus()),
         ChangeNotifierProvider(create: (_) => IntentProvider()..loadSavedIntent()),
+        ChangeNotifierProvider(create: (_) => ProfileProvider()..loadProfile()),
+        ChangeNotifierProvider(create: (_) => PostProvider()..loadPosts()),
       ],
       child: const CircleUpApp(),
     ),

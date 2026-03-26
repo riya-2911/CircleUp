@@ -72,4 +72,14 @@ class PrefsHelper {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
   }
+
+  static Future<void> saveCustomString(String key, String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(key, value);
+  }
+
+  static Future<String?> getCustomString(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(key);
+  }
 }
