@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../theme/app_theme_tokens.dart';
+
 import '../../providers/intent_provider.dart';
 import 'intent_pages/productivity_page.dart';
 import 'intent_pages/hangout_page.dart';
@@ -17,8 +19,8 @@ class IntentSelectionPage extends StatefulWidget {
 }
 
 class _IntentSelectionPageState extends State<IntentSelectionPage> {
-  static const _primaryBlue = Color(0xFF5B46FF);
-  static const _pageBg = Color(0xFFF7F8FC);
+  static const _primaryBlue = AppThemeTokens.blueEnd;
+  static const _pageBg = AppThemeTokens.pageBackgroundWhite;
   String? _selectedId;
 
   static const _cards = <_IntentCardData>[
@@ -27,36 +29,48 @@ class _IntentSelectionPageState extends State<IntentSelectionPage> {
       title: 'Productivity',
       icon: Icons.work,
       color: Color(0xFF4F46E5),
+      imageUrl:
+          'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=800&q=80',
     ),
     _IntentCardData(
       id: 'hangout',
       title: 'Hangout',
       icon: Icons.local_cafe,
       color: Color(0xFF6366F1),
+      imageUrl:
+          'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80',
     ),
     _IntentCardData(
       id: 'wellness',
       title: 'Wellness',
       icon: Icons.favorite,
       color: Color(0xFF6366F1),
+      imageUrl:
+          'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=800&q=80',
     ),
     _IntentCardData(
       id: 'travel',
       title: 'Travel',
       icon: Icons.flight,
       color: Color(0xFF6366F1),
+      imageUrl:
+          'https://images.unsplash.com/photo-1488085061387-422e29b40080?auto=format&fit=crop&w=800&q=80',
     ),
     _IntentCardData(
       id: 'fitness',
       title: 'Fitness',
       icon: Icons.fitness_center,
       color: Color(0xFF6366F1),
+      imageUrl:
+          'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=800&q=80',
     ),
     _IntentCardData(
       id: 'explore',
       title: 'Explore',
       icon: Icons.public,
       color: Color(0xFF6366F1),
+      imageUrl:
+          'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=800&q=80',
     ),
   ];
 
@@ -73,7 +87,9 @@ class _IntentSelectionPageState extends State<IntentSelectionPage> {
     final provider = context.read<IntentProvider>();
     final mappedProviderId = _mapScreenIntentToProviderId(_selectedId!);
     if (mappedProviderId != null) {
-      final match = provider.availableIntents.where((intent) => intent.id == mappedProviderId);
+      final match = provider.availableIntents.where(
+        (intent) => intent.id == mappedProviderId,
+      );
       if (match.isNotEmpty) {
         await provider.selectIntent(match.first);
       }
@@ -106,9 +122,7 @@ class _IntentSelectionPageState extends State<IntentSelectionPage> {
         return;
     }
 
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => intentPage),
-    );
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => intentPage));
   }
 
   String? _mapScreenIntentToProviderId(String screenId) {
@@ -171,7 +185,7 @@ class _IntentSelectionPageState extends State<IntentSelectionPage> {
                 style: TextStyle(
                   fontSize: 42,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF1F2937),
+                  color: AppThemeTokens.blueEnd,
                   letterSpacing: -0.8,
                 ),
               ),
@@ -180,7 +194,7 @@ class _IntentSelectionPageState extends State<IntentSelectionPage> {
                 'What do you want to do right now?',
                 style: TextStyle(
                   fontSize: 15,
-                  color: Color(0xFF6B7280),
+                  color: Color(0xFF3B82F6),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -205,6 +219,7 @@ class _IntentSelectionPageState extends State<IntentSelectionPage> {
                         title: card.title,
                         icon: card.icon,
                         iconColor: card.color,
+                        imageUrl: card.imageUrl,
                         selected: isSelected,
                       ),
                     );
@@ -220,8 +235,11 @@ class _IntentSelectionPageState extends State<IntentSelectionPage> {
                     borderRadius: BorderRadius.circular(28),
                     gradient: LinearGradient(
                       colors: _selectedId == null
-                          ? const [Color(0xFFC4B5FD), Color(0xFFA78BFA)]
-                          : const [Color(0xFF5B46FF), Color(0xFF7C3AED)],
+                          ? const [Color(0xFFBFDBFE), Color(0xFF93C5FD)]
+                          : const [
+                              AppThemeTokens.blueStart,
+                              AppThemeTokens.blueEnd,
+                            ],
                     ),
                     boxShadow: [
                       BoxShadow(
@@ -246,7 +264,10 @@ class _IntentSelectionPageState extends State<IntentSelectionPage> {
                       children: [
                         Text(
                           'Set Intent',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                         SizedBox(width: 8),
                         Icon(Icons.arrow_forward_rounded, size: 18),
@@ -268,12 +289,14 @@ class _IntentCardData {
   final String title;
   final IconData icon;
   final Color color;
+  final String imageUrl;
 
   const _IntentCardData({
     required this.id,
     required this.title,
     required this.icon,
     required this.color,
+    required this.imageUrl,
   });
 }
 
@@ -282,12 +305,14 @@ class _IntentTile extends StatelessWidget {
     required this.title,
     required this.icon,
     required this.iconColor,
+    required this.imageUrl,
     required this.selected,
   });
 
   final String title;
   final IconData icon;
   final Color iconColor;
+  final String imageUrl;
   final bool selected;
 
   @override
@@ -301,10 +326,12 @@ class _IntentTile extends StatelessWidget {
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOut,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: const Color(0xFFF8FAFF),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: selected ? const Color(0xFF5B46FF) : const Color(0xFFE5E7EB),
+              color: selected
+                  ? AppThemeTokens.blueEnd
+                  : const Color(0xFFE5E7EB),
               width: selected ? 1.6 : 1,
             ),
             boxShadow: [
@@ -315,32 +342,70 @@ class _IntentTile extends StatelessWidget {
               ),
             ],
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(23),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      Container(color: const Color(0xFFE8F1FF)),
                 ),
-                child: Icon(icon, color: iconColor, size: 23),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF374151),
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.18),
+                        Colors.black.withValues(alpha: 0.34),
+                      ],
+                    ),
+                  ),
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 16,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.78),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(icon, color: iconColor, size: 24),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          shadows: [
+                            Shadow(
+                              color: Color(0x55000000),
+                              blurRadius: 10,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         if (selected)
@@ -349,7 +414,7 @@ class _IntentTile extends StatelessWidget {
             right: 8,
             child: CircleAvatar(
               radius: 11,
-              backgroundColor: Color(0xFF5B46FF),
+              backgroundColor: AppThemeTokens.blueEnd,
               child: Icon(Icons.check, size: 12, color: Colors.white),
             ),
           ),

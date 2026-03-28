@@ -23,7 +23,7 @@ import 'package:flutter/foundation.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   try {
     if (kIsWeb) {
       await Firebase.initializeApp(
@@ -46,12 +46,12 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-          ChangeNotifierProvider(create: (_) => AuthProvider()),
-          ChangeNotifierProvider(create: (_) => IntentProvider()),
-          ChangeNotifierProvider(create: (_) => ProfileProvider()),
-          ChangeNotifierProvider(create: (_) => PostProvider()),
-          ChangeNotifierProvider(create: (_) => LiveProvider()),
-          ChangeNotifierProvider(create: (_) => ConnectionsProvider()),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => IntentProvider()),
+        ChangeNotifierProvider(create: (_) => ProfileProvider()),
+        ChangeNotifierProvider(create: (_) => PostProvider()),
+        ChangeNotifierProvider(create: (_) => LiveProvider()),
+        ChangeNotifierProvider(create: (_) => ConnectionsProvider()),
       ],
       child: const CircleUpApp(),
     ),
@@ -64,7 +64,7 @@ class CircleUpApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'CircleUp',
+      title: 'CircleUP',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,

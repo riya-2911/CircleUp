@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:circleup/services/prefs_helper.dart';
+import 'package:circleup/services/auth_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -9,7 +10,8 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
@@ -18,22 +20,32 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    
+
     // Animation controller for the 4-second splash
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 4));
-    
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    );
+
     // Quick fade and scale in for the logo elements during the first 1.5 seconds
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.3, curve: Curves.easeIn)),
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.3, curve: Curves.easeIn),
+      ),
     );
     _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.4, curve: Curves.easeOutBack)),
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.4, curve: Curves.easeOutBack),
+      ),
     );
-    
+
     // Progress bar fills over the full 4 seconds
-    _progressAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _progressAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
 
     _controller.forward();
 
@@ -42,9 +54,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       if (!mounted) return;
 
       final bool hasCompleted = await PrefsHelper.hasCompletedOnboarding();
-      final String? userId = await PrefsHelper.getUserId();
+      String? userId = await PrefsHelper.getUserId();
       final String? userName = await PrefsHelper.getUserName();
-      final bool hasCompletedProfile = await PrefsHelper.hasCompletedProfileSetup();
+      final bool hasCompletedProfile =
+          await PrefsHelper.hasCompletedProfileSetup();
 
       if (mounted) {
         if (!hasCompleted) {
@@ -53,11 +66,25 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
         }
 
         final isLoggedIn =
-            userId != null && userId.isNotEmpty && userName != null && userName.isNotEmpty;
+            userId != null &&
+            userId.isNotEmpty &&
+            userName != null &&
+            userName.isNotEmpty;
 
         if (!isLoggedIn) {
           Navigator.pushReplacementNamed(context, '/login');
           return;
+        }
+
+        // Ensure every logged-in local session has a Firebase-auth UID.
+        final signedIn = await AuthService.signInAnonymously();
+        final authUid = AuthService.currentUser?.uid;
+        if (signedIn &&
+            authUid != null &&
+            authUid.isNotEmpty &&
+            authUid != userId) {
+          await PrefsHelper.saveUserId(authUid);
+          userId = authUid;
         }
 
         if (!hasCompletedProfile) {
@@ -95,13 +122,15 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Spacer(flex: 2),
-                    
+
                     // App Logo Icon
                     Container(
                       width: 100,
                       height: 100,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF3C56FF), // Slightly lighter blue box
+                        color: const Color(
+                          0xFF3C56FF,
+                        ), // Slightly lighter blue box
                         borderRadius: BorderRadius.circular(28),
                         boxShadow: [
                           BoxShadow(
@@ -118,16 +147,19 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: const Color(0xFF40F0D0), // Cyan center
-                            border: Border.all(color: const Color(0xFF3C56FF), width: 8), // Inner hole illusion
+                            border: Border.all(
+                              color: const Color(0xFF3C56FF),
+                              width: 8,
+                            ), // Inner hole illusion
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // Typography
                     const Text(
-                      'CircleUp',
+                      'CircleUP',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 42,
@@ -144,12 +176,15 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    
+
                     const Spacer(flex: 1),
-                    
+
                     // Secure Networking Badge
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.black.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(20),
@@ -157,7 +192,11 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.security, color: Color(0xFF40F0D0), size: 14),
+                          const Icon(
+                            Icons.security,
+                            color: Color(0xFF40F0D0),
+                            size: 14,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             'SECURE NETWORKING',
@@ -172,7 +211,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       ),
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Animated Progress Bar
                     Container(
                       width: size.width * 0.5,
@@ -184,19 +223,22 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       child: Row(
                         children: [
                           Container(
-                            width: (size.width * 0.5) * _progressAnimation.value,
+                            width:
+                                (size.width * 0.5) * _progressAnimation.value,
                             height: 3,
                             decoration: BoxDecoration(
                               color: const Color(0xFF40F0D0),
                               borderRadius: BorderRadius.circular(1.5),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF40F0D0).withOpacity(0.5),
+                                  color: const Color(
+                                    0xFF40F0D0,
+                                  ).withOpacity(0.5),
                                   blurRadius: 6,
                                 ),
                               ],
                             ),
-                          )
+                          ),
                         ],
                       ),
                     ),

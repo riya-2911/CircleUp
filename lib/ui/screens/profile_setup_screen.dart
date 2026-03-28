@@ -34,7 +34,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   ];
 
   final List<String> _genderOptions = ['Male', 'Female', 'Other'];
-  final List<String> _personalityOptions = ['Introvery', 'Extrovery', 'Ambiverts'];
+  final List<String> _personalityOptions = [
+    'Introvery',
+    'Extrovery',
+    'Ambiverts',
+  ];
   final List<String> _roleOptions = ['Student', 'Professional'];
 
   bool _isSaving = false;
@@ -151,6 +155,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   Widget build(BuildContext context) {
     const bgColor = Color(0xFFF4F6FC);
     const primaryBlue = Color(0xFF5B46FF);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isCompact = screenWidth < 380;
+    final horizontalPadding = isCompact ? 12.0 : 16.0;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -162,7 +169,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'CircleUp',
+          'CircleUP',
           style: TextStyle(color: primaryBlue, fontWeight: FontWeight.w700),
         ),
         centerTitle: false,
@@ -175,265 +182,319 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 8),
-              const Center(
-                child: Text(
-                  'Complete Your Profile',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF0F172A),
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            12,
+            horizontalPadding,
+            16,
+          ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 560),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 8),
+                  Text(
+                    'Complete Your Profile',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: isCompact ? 28 : 24,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF0F172A),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              // Profile Photo
-              Center(
-                child: Stack(
-                  children: [
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE0E7FF),
-                        borderRadius: BorderRadius.circular(20),
+                  const SizedBox(height: 20),
+                  // Profile Photo
+                  Center(
+                    child: Stack(
+                      children: [
+                        Container(
+                          width: 88,
+                          height: 88,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE0E7FF),
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: _selectedPhotoPath != null
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(24),
+                                  child: Image.file(
+                                    File(_selectedPhotoPath!),
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.person_outline,
+                                  size: 42,
+                                  color: Color(0xFFA5B4FC),
+                                ),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: GestureDetector(
+                            onTap: _pickImage,
+                            child: Container(
+                              width: 30,
+                              height: 30,
+                              decoration: const BoxDecoration(
+                                color: primaryBlue,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt,
+                                color: Colors.white,
+                                size: 15,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  // Full Name
+                  _buildLabel('FULL NAME'),
+                  const SizedBox(height: 8),
+                  _buildTextField(
+                    controller: _nameController,
+                    hint: 'e.g. Alex Rivera',
+                  ),
+                  const SizedBox(height: 16),
+                  _buildAdaptiveIdentitySection(),
+                  const SizedBox(height: 16),
+                  // City / Area
+                  _buildLabel('CITY / AREA'),
+                  const SizedBox(height: 8),
+                  _buildTextField(
+                    controller: _cityController,
+                    hint: 'San Francisco, CA',
+                  ),
+                  const SizedBox(height: 16),
+                  // Select Interests
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildLabel('SELECT INTERESTS'),
+                      Text(
+                        '${_selectedInterests.length} SELECTED',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: primaryBlue,
+                        ),
                       ),
-                      child: _selectedPhotoPath != null
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(20),
-                              child: Image.file(
-                                File(_selectedPhotoPath!),
-                                fit: BoxFit.cover,
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _allInterests.map((interest) {
+                      final isSelected = _selectedInterests.contains(interest);
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            if (isSelected) {
+                              _selectedInterests.remove(interest);
+                            } else {
+                              _selectedInterests.add(interest);
+                            }
+                          });
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 160),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected ? primaryBlue : Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isSelected
+                                  ? Colors.transparent
+                                  : const Color(0xFFE5E7EB),
+                            ),
+                          ),
+                          child: Text(
+                            interest,
+                            style: TextStyle(
+                              color: isSelected
+                                  ? Colors.white
+                                  : const Color(0xFF6B7280),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+                  // Student / Professional
+                  _buildLabel('COLLEGE / PROFESSION'),
+                  const SizedBox(height: 8),
+                  _buildDropdown(
+                    value: _selectedRole,
+                    items: _roleOptions,
+                    onChanged: (value) {
+                      setState(() => _selectedRole = value!);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Your profile information is used to help you find the most relevant Circles.',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+                  ),
+                  const SizedBox(height: 20),
+                  // Continue Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _isSaving ? null : _saveProfile,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryBlue,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: _isSaving
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
                               ),
                             )
-                          : const Icon(
-                              Icons.person_outline,
-                              size: 40,
-                              color: Color(0xFFA5B4FC),
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Continue ',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Icon(Icons.arrow_forward, size: 18),
+                              ],
                             ),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: GestureDetector(
-                        onTap: _pickImage,
-                        child: Container(
-                          width: 28,
-                          height: 28,
-                          decoration: const BoxDecoration(
-                            color: primaryBlue,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.camera_alt,
-                            color: Colors.white,
-                            size: 14,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 28),
-              // Full Name
-              _buildLabel('FULL NAME'),
-              const SizedBox(height: 8),
-              _buildTextField(
-                controller: _nameController,
-                hint: 'e.g. Alex Rivera',
-              ),
-              const SizedBox(height: 16),
-              // Gender, Age, Personality Row
-              Row(
-                children: [
-                  Expanded(
-                    flex: 1,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel('GENDER'),
-                        const SizedBox(height: 8),
-                        _buildDropdown(
-                          value: _selectedGender,
-                          items: _genderOptions,
-                          onChanged: (value) {
-                            setState(() => _selectedGender = value!);
-                          },
-                        ),
-                      ],
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 1,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel('AGE'),
-                        const SizedBox(height: 8),
-                        Column(
-                          children: [
-                            _buildTextField(
-                              controller: null,
-                              readOnly: true,
-                              hint: _selectedAge.toString(),
-                            ),
-                            Slider(
-                              value: _selectedAge.toDouble(),
-                              min: 18,
-                              max: 65,
-                              divisions: 47,
-                              onChanged: (value) {
-                                setState(() => _selectedAge = value.toInt());
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 1,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel('PERSONALITY'),
-                        const SizedBox(height: 8),
-                        _buildDropdown(
-                          value: _selectedPersonality,
-                          items: _personalityOptions,
-                          onChanged: (value) {
-                            setState(() => _selectedPersonality = value!);
-                          },
-                        ),
-                      ],
-                    ),
+                  SizedBox(
+                    height: MediaQuery.of(context).viewInsets.bottom > 0
+                        ? 16
+                        : 24,
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              // City / Area
-              _buildLabel('CITY / AREA'),
-              const SizedBox(height: 8),
-              _buildTextField(
-                controller: _cityController,
-                hint: 'San Francisco, CA',
-              ),
-              const SizedBox(height: 16),
-              // Select Interests
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildLabel('SELECT INTERESTS'),
-                  Text(
-                    '${_selectedInterests.length} SELECTED',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: primaryBlue,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _allInterests.map((interest) {
-                  final isSelected = _selectedInterests.contains(interest);
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        if (isSelected) {
-                          _selectedInterests.remove(interest);
-                        } else {
-                          _selectedInterests.add(interest);
-                        }
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isSelected ? primaryBlue : Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: isSelected ? Colors.transparent : const Color(0xFFE5E7EB),
-                        ),
-                      ),
-                      child: Text(
-                        interest,
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : const Color(0xFF6B7280),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 20),
-              // Student / Professional
-              _buildLabel('COLLEGE / PROFESSION'),
-              const SizedBox(height: 8),
-              _buildDropdown(
-                value: _selectedRole,
-                items: _roleOptions,
-                onChanged: (value) {
-                  setState(() => _selectedRole = value!);
-                },
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Your profile information is used to help you find the most relevant Circles.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF9CA3AF),
-                ),
-              ),
-              const SizedBox(height: 24),
-              // Continue Button
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _isSaving ? null : _saveProfile,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryBlue,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: _isSaving
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text('Continue ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                            Icon(Icons.arrow_forward, size: 18),
-                          ],
-                        ),
-                ),
-              ),
-              const SizedBox(height: 32),
-            ],
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildAdaptiveIdentitySection() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 420;
+
+        if (isNarrow) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildLabeledDropdownField(
+                label: 'GENDER',
+                value: _selectedGender,
+                items: _genderOptions,
+                onChanged: (value) => setState(() => _selectedGender = value!),
+              ),
+              const SizedBox(height: 12),
+              _buildAgeField(),
+              const SizedBox(height: 12),
+              _buildLabeledDropdownField(
+                label: 'PERSONALITY',
+                value: _selectedPersonality,
+                items: _personalityOptions,
+                onChanged: (value) =>
+                    setState(() => _selectedPersonality = value!),
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _buildLabeledDropdownField(
+                label: 'GENDER',
+                value: _selectedGender,
+                items: _genderOptions,
+                onChanged: (value) => setState(() => _selectedGender = value!),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: _buildAgeField()),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildLabeledDropdownField(
+                label: 'PERSONALITY',
+                value: _selectedPersonality,
+                items: _personalityOptions,
+                onChanged: (value) =>
+                    setState(() => _selectedPersonality = value!),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildLabeledDropdownField({
+    required String label,
+    required String value,
+    required List<String> items,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildLabel(label),
+        const SizedBox(height: 8),
+        _buildDropdown(value: value, items: items, onChanged: onChanged),
+      ],
+    );
+  }
+
+  Widget _buildAgeField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildLabel('AGE'),
+        const SizedBox(height: 8),
+        _buildTextField(
+          controller: null,
+          readOnly: true,
+          hint: _selectedAge.toString(),
+        ),
+        Slider(
+          value: _selectedAge.toDouble(),
+          min: 18,
+          max: 65,
+          divisions: 47,
+          onChanged: (value) {
+            setState(() => _selectedAge = value.toInt());
+          },
+        ),
+      ],
     );
   }
 
@@ -462,7 +523,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         hintStyle: const TextStyle(color: Color(0xFFD1D5DB)),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 10,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
@@ -484,26 +548,39 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     required List<String> items,
     required ValueChanged<String?> onChanged,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+    return DropdownButtonFormField<String>(
+      initialValue: value,
+      isExpanded: true,
+      menuMaxHeight: 280,
+      borderRadius: BorderRadius.circular(10),
+      icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF6B7280)),
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 10,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF5B46FF), width: 2),
+        ),
       ),
-      child: DropdownButton<String>(
-        value: value,
-        items: items.map((item) {
-          return DropdownMenuItem<String>(
-            value: item,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(item),
-            ),
-          );
-        }).toList(),
-        onChanged: onChanged,
-        isExpanded: true,
-        underline: const SizedBox(),
-      ),
+      items: items.map((item) {
+        return DropdownMenuItem<String>(
+          value: item,
+          child: Text(item, overflow: TextOverflow.ellipsis),
+        );
+      }).toList(),
+      onChanged: onChanged,
     );
   }
 }

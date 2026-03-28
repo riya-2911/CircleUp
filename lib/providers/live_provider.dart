@@ -19,7 +19,8 @@ class LiveProvider with ChangeNotifier {
   final List<LiveUserModel> _allUsers = <LiveUserModel>[];
 
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _activeSubscription;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _allUsersSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+  _allUsersSubscription;
   StreamSubscription<User?>? _authSubscription;
   Timer? _heartbeatTimer;
 
@@ -27,13 +28,36 @@ class LiveProvider with ChangeNotifier {
   double? _myLatitude;
   double? _myLongitude;
 
-  List<LiveUserModel> get activeUsers => List<LiveUserModel>.unmodifiable(_activeUsers);
-  List<LiveUserModel> get allUsers => List<LiveUserModel>.unmodifiable(_allUsers);
+  List<LiveUserModel> get activeUsers =>
+      List<LiveUserModel>.unmodifiable(_activeUsers);
+  List<LiveUserModel> get allUsers =>
+      List<LiveUserModel>.unmodifiable(_allUsers);
 
   double? get myLatitude => _myLatitude;
   double? get myLongitude => _myLongitude;
 
   bool get isListening => _activeSubscription != null;
+
+  Future<String?> _resolveCanonicalUserId() async {
+    var authUser = FirebaseAuth.instance.currentUser;
+    if (authUser == null) {
+      final ok = await AuthService.signInAnonymously();
+      if (ok) {
+        authUser = FirebaseAuth.instance.currentUser;
+      }
+    }
+
+    final authUid = authUser?.uid;
+    if (authUid != null && authUid.isNotEmpty) {
+      final saved = await PrefsHelper.getUserId();
+      if (saved != authUid) {
+        await PrefsHelper.saveUserId(authUid);
+      }
+      return authUid;
+    }
+
+    return PrefsHelper.getUserId();
+  }
 
   void startRealtime() {
     // Check if Firebase is initialized
@@ -49,13 +73,13 @@ class LiveProvider with ChangeNotifier {
   Future<void> _initUserStateListener() async {
     // Check for local user first
     final localUserId = await PrefsHelper.getUserId();
-    
+
     // Set up dual listener: Firebase auth changes AND local user state
     _authSubscription?.cancel();
     _authSubscription = FirebaseAuth.instance.authStateChanges().listen((_) {
       _checkAndInitializeListeners();
     });
-    
+
     // Also check immediately in case user is local (not Firebase authenticated)
     _checkAndInitializeListeners();
   }
@@ -63,18 +87,24 @@ class LiveProvider with ChangeNotifier {
   Future<void> _checkAndInitializeListeners() async {
     final localUserId = await PrefsHelper.getUserId();
     final firebaseUser = FirebaseAuth.instance.currentUser;
-    
+
     // Initialize if user has either Firebase auth OR local user ID
-    if (firebaseUser != null || (localUserId != null && localUserId.isNotEmpty)) {
-      debugPrint('User ready (Firebase: ${firebaseUser?.uid}, Local: $localUserId), initializing Firestore listeners');
-       // Ensure anonymous auth for local users
-       if (firebaseUser == null && localUserId != null) {
-         final anonSuccess = await AuthService.signInAnonymously();
-         if (!anonSuccess) {
-           debugPrint('Failed to authenticate anonymously, listeners may not work');
-         }
-       }
-       _initializeFirestoreListeners();
+    if (firebaseUser != null ||
+        (localUserId != null && localUserId.isNotEmpty)) {
+      debugPrint(
+        'User ready (Firebase: ${firebaseUser?.uid}, Local: $localUserId), initializing Firestore listeners',
+      );
+      // Ensure anonymous auth for local users
+      if (firebaseUser == null && localUserId != null) {
+        final anonSuccess = await AuthService.signInAnonymously();
+        if (!anonSuccess) {
+          debugPrint(
+            'Failed to authenticate anonymously, listeners may not work',
+          );
+        }
+      }
+      await _resolveCanonicalUserId();
+      _initializeFirestoreListeners();
     } else {
       debugPrint('No user found, cancelling Firestore listeners');
       _cancelListeners();
@@ -89,58 +119,61 @@ class LiveProvider with ChangeNotifier {
         .where('isLive', isEqualTo: true)
         .snapshots()
         .listen(
-      (snapshot) {
-        final users = snapshot.docs
-            .map((doc) {
-              final data = doc.data();
-              data['userId'] = (data['userId'] as String?)?.isNotEmpty == true
-                  ? data['userId']
-                  : doc.id;
-              return LiveUserModel.fromMap(data);
-            })
-            .where((u) => !u.isStale && u.latitude != 0 && u.longitude != 0)
-            .toList();
+          (snapshot) {
+            final users = snapshot.docs
+                .map((doc) {
+                  final data = doc.data();
+                  data['userId'] =
+                      (data['userId'] as String?)?.isNotEmpty == true
+                      ? data['userId']
+                      : doc.id;
+                  return LiveUserModel.fromMap(data);
+                })
+                .where((u) => !u.isStale && u.latitude != 0 && u.longitude != 0)
+                .toList();
 
-        users.sort((a, b) => a.distanceKm.compareTo(b.distanceKm));
+            users.sort((a, b) => a.distanceKm.compareTo(b.distanceKm));
 
-        _activeUsers
-          ..clear()
-          ..addAll(users);
-        notifyListeners();
-      },
-      onError: (error) {
-        debugPrint('Live users listener error: $error');
-      },
-    );
+            _activeUsers
+              ..clear()
+              ..addAll(users);
+            notifyListeners();
+          },
+          onError: (error) {
+            debugPrint('Live users listener error: $error');
+          },
+        );
 
     _allUsersSubscription ??= FirebaseFirestore.instance
         .collection(_usersCollection)
         .snapshots()
         .listen(
-      (snapshot) {
-        final users = snapshot.docs
-            .map((doc) {
-              final data = doc.data();
-              data['userId'] = (data['userId'] as String?)?.isNotEmpty == true
-                  ? data['userId']
-                  : doc.id;
-              return LiveUserModel.fromMap(data);
-            })
-            .where((u) => u.latitude != 0 && u.longitude != 0)
-            .toList();
+          (snapshot) {
+            final users = snapshot.docs
+                .map((doc) {
+                  final data = doc.data();
+                  data['userId'] =
+                      (data['userId'] as String?)?.isNotEmpty == true
+                      ? data['userId']
+                      : doc.id;
+                  return LiveUserModel.fromMap(data);
+                })
+                .where((u) => u.latitude != 0 && u.longitude != 0)
+                .toList();
 
-        users.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-        _allUsers
-          ..clear()
-          ..addAll(users);
-        notifyListeners();
-      },
-      onError: (error) {
-        debugPrint('All users map listener error: $error');
-      },
-    );
+            users.sort(
+              (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+            );
+            _allUsers
+              ..clear()
+              ..addAll(users);
+            notifyListeners();
+          },
+          onError: (error) {
+            debugPrint('All users map listener error: $error');
+          },
+        );
   }
-
 
   void _cancelListeners() {
     _activeSubscription?.cancel();
@@ -162,7 +195,7 @@ class LiveProvider with ChangeNotifier {
   }
 
   Future<void> _updateAccountLocationSnapshot() async {
-    final userId = await PrefsHelper.getUserId();
+    final userId = await _resolveCanonicalUserId();
     if (userId == null || userId.isEmpty) {
       return;
     }
@@ -176,15 +209,19 @@ class LiveProvider with ChangeNotifier {
     _myLatitude = position.latitude;
     _myLongitude = position.longitude;
 
-    await FirebaseFirestore.instance.collection(_usersCollection).doc(userId).set(
-      {
-        'userId': userId,
-        'latitude': _myLatitude,
-        'longitude': _myLongitude,
-        'updatedAt': Timestamp.fromDate(DateTime.now()),
-      },
-      SetOptions(merge: true),
-    );
+    try {
+      await FirebaseFirestore.instance
+          .collection(_usersCollection)
+          .doc(userId)
+          .set({
+            'userId': userId,
+            'latitude': _myLatitude,
+            'longitude': _myLongitude,
+            'updatedAt': Timestamp.fromDate(DateTime.now()),
+          }, SetOptions(merge: true));
+    } on FirebaseException catch (e) {
+      debugPrint('User location snapshot write failed: ${e.code} ${e.message}');
+    }
     notifyListeners();
   }
 
@@ -215,7 +252,9 @@ class LiveProvider with ChangeNotifier {
       return null;
     }
 
-    return Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+    return Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
   }
 
   double _distanceKmBetween({
@@ -237,7 +276,7 @@ class LiveProvider with ChangeNotifier {
       return false;
     }
 
-    final userId = profile?.userId ?? await PrefsHelper.getUserId();
+    final userId = await _resolveCanonicalUserId();
     if (userId == null || userId.isEmpty) {
       return false;
     }
@@ -255,9 +294,7 @@ class LiveProvider with ChangeNotifier {
 
     final payload = LiveUserModel(
       userId: userId,
-      name: (profile?.fullName.isNotEmpty ?? false)
-          ? profile!.fullName
-          : 'You',
+      name: (profile?.fullName.isNotEmpty ?? false) ? profile!.fullName : 'You',
       age: profile?.age ?? 0,
       intent: intent,
       tags: tags,
@@ -268,15 +305,20 @@ class LiveProvider with ChangeNotifier {
       updatedAt: DateTime.now(),
     );
 
-    await FirebaseFirestore.instance
-        .collection(_liveCollection)
-        .doc(userId)
-        .set(payload.toMap(), SetOptions(merge: true));
+    try {
+      await FirebaseFirestore.instance
+          .collection(_liveCollection)
+          .doc(userId)
+          .set(payload.toMap(), SetOptions(merge: true));
 
-    await FirebaseFirestore.instance.collection(_usersCollection).doc(userId).set(
-      payload.toMap(),
-      SetOptions(merge: true),
-    );
+      await FirebaseFirestore.instance
+          .collection(_usersCollection)
+          .doc(userId)
+          .set(payload.toMap(), SetOptions(merge: true));
+    } on FirebaseException catch (e) {
+      debugPrint('goLive write failed: ${e.code} ${e.message}');
+      return false;
+    }
 
     startRealtime();
     _startHeartbeat(intent: intent, profile: profile, tags: tags);
@@ -293,15 +335,12 @@ class LiveProvider with ChangeNotifier {
     }
 
     await FirebaseFirestore.instance
-      .collection(_liveCollection)
+        .collection(_liveCollection)
         .doc(_myUserId)
-        .set(
-      {
-        'isLive': false,
-        'updatedAt': Timestamp.fromDate(DateTime.now()),
-      },
-      SetOptions(merge: true),
-    );
+        .set({
+          'isLive': false,
+          'updatedAt': Timestamp.fromDate(DateTime.now()),
+        }, SetOptions(merge: true));
   }
 
   void _startHeartbeat({
@@ -314,76 +353,81 @@ class LiveProvider with ChangeNotifier {
       if (_myUserId == null || Firebase.apps.isEmpty) {
         return;
       }
-
-      final position = await _ensureAndGetPosition();
-      if (position != null) {
-        _myLatitude = position.latitude;
-        _myLongitude = position.longitude;
-      }
-
-      final lat = _myLatitude ?? 19.0760;
-      final lng = _myLongitude ?? 72.8777;
-
-      final distanceKm = (_myLatitude != null && _myLongitude != null)
-          ? 0.0
-          : 0.3;
-
-      final payload = {
-        'userId': _myUserId,
-        'name': (profile?.fullName.isNotEmpty ?? false)
-            ? profile!.fullName
-            : 'You',
-        'age': profile?.age ?? 0,
-        'intent': intent,
-        'tags': tags,
-        'latitude': lat,
-        'longitude': lng,
-        'distanceKm': distanceKm,
-        'isLive': true,
-        'updatedAt': Timestamp.fromDate(DateTime.now()),
-      };
-
-      await FirebaseFirestore.instance
-          .collection(_liveCollection)
-          .doc(_myUserId)
-          .set(payload, SetOptions(merge: true));
-
-      await FirebaseFirestore.instance
-          .collection(_usersCollection)
-          .doc(_myUserId)
-          .set(payload, SetOptions(merge: true));
-
-      // Update distance values for all live users relative to current user.
-      if (_myLatitude != null && _myLongitude != null) {
-        final liveSnapshot = await FirebaseFirestore.instance
-            .collection(_liveCollection)
-            .where('isLive', isEqualTo: true)
-            .get();
-
-        final batch = FirebaseFirestore.instance.batch();
-        for (final doc in liveSnapshot.docs) {
-          final data = doc.data();
-          final uLat = (data['latitude'] as num?)?.toDouble();
-          final uLng = (data['longitude'] as num?)?.toDouble();
-          if (uLat == null || uLng == null) {
-            continue;
-          }
-          final distance = _distanceKmBetween(
-            fromLat: _myLatitude!,
-            fromLng: _myLongitude!,
-            toLat: uLat,
-            toLng: uLng,
-          );
-          batch.set(
-            doc.reference,
-            {'distanceKm': distance},
-            SetOptions(merge: true),
-          );
+      try {
+        final position = await _ensureAndGetPosition();
+        if (position != null) {
+          _myLatitude = position.latitude;
+          _myLongitude = position.longitude;
         }
-        await batch.commit();
-      }
 
-      notifyListeners();
+        final lat = _myLatitude ?? 19.0760;
+        final lng = _myLongitude ?? 72.8777;
+
+        final distanceKm = (_myLatitude != null && _myLongitude != null)
+            ? 0.0
+            : 0.3;
+
+        final payload = {
+          'userId': _myUserId,
+          'name': (profile?.fullName.isNotEmpty ?? false)
+              ? profile!.fullName
+              : 'You',
+          'age': profile?.age ?? 0,
+          'intent': intent,
+          'tags': tags,
+          'latitude': lat,
+          'longitude': lng,
+          'distanceKm': distanceKm,
+          'isLive': true,
+          'updatedAt': Timestamp.fromDate(DateTime.now()),
+        };
+
+        await FirebaseFirestore.instance
+            .collection(_liveCollection)
+            .doc(_myUserId)
+            .set(payload, SetOptions(merge: true));
+
+        await FirebaseFirestore.instance
+            .collection(_usersCollection)
+            .doc(_myUserId)
+            .set(payload, SetOptions(merge: true));
+
+        // Update distance values for all live users relative to current user.
+        if (_myLatitude != null && _myLongitude != null) {
+          final liveSnapshot = await FirebaseFirestore.instance
+              .collection(_liveCollection)
+              .where('isLive', isEqualTo: true)
+              .get();
+
+          final batch = FirebaseFirestore.instance.batch();
+          for (final doc in liveSnapshot.docs) {
+            final data = doc.data();
+            final uLat = (data['latitude'] as num?)?.toDouble();
+            final uLng = (data['longitude'] as num?)?.toDouble();
+            if (uLat == null || uLng == null) {
+              continue;
+            }
+            final distance = _distanceKmBetween(
+              fromLat: _myLatitude!,
+              fromLng: _myLongitude!,
+              toLat: uLat,
+              toLng: uLng,
+            );
+            batch.set(doc.reference, {
+              'distanceKm': distance,
+            }, SetOptions(merge: true));
+          }
+          await batch.commit();
+        }
+
+        notifyListeners();
+      } on FirebaseException catch (e) {
+        debugPrint('Heartbeat write failed: ${e.code} ${e.message}');
+        if (e.code == 'permission-denied') {
+          _heartbeatTimer?.cancel();
+          _heartbeatTimer = null;
+        }
+      }
     });
   }
 }

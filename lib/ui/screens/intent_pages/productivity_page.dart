@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../theme/app_theme_tokens.dart';
+
 import '../../../providers/live_provider.dart';
 import '../../../providers/profile_provider.dart';
 import '../main_navigation_screen.dart';
@@ -13,12 +15,19 @@ class ProductivityPage extends StatefulWidget {
 }
 
 class _ProductivityPageState extends State<ProductivityPage> {
-  static const _primaryBlue = Color(0xFF5B46FF);
-  static const _pageBg = Color(0xFFF7F8FC);
+  static const _primaryBlue = AppThemeTokens.blueEnd;
+  static const _pageBg = AppThemeTokens.pageBackgroundWhite;
   String? _selectedFocus;
   final TextEditingController _goalsController = TextEditingController();
 
-  static const _focusAreas = ['Coding', 'Tech', 'Finance', 'Study', 'Writing', 'Business'];
+  static const _focusAreas = [
+    'Coding',
+    'Tech',
+    'Finance',
+    'Study',
+    'Writing',
+    'Business',
+  ];
 
   @override
   void dispose() {
@@ -36,12 +45,16 @@ class _ProductivityPageState extends State<ProductivityPage> {
     if (!mounted) return;
     if (!didGoLive) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please allow GPS/location permission to go live.')),
+        const SnackBar(
+          content: Text('Please allow GPS/location permission to go live.'),
+        ),
       );
       return;
     }
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const MainNavigationScreen(initialIndex: 2)),
+      MaterialPageRoute(
+        builder: (_) => const MainNavigationScreen(initialIndex: 2),
+      ),
       (_) => false,
     );
   }
@@ -73,7 +86,7 @@ class _ProductivityPageState extends State<ProductivityPage> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF1F2937),
+                  color: AppThemeTokens.blueEnd,
                 ),
               ),
               const SizedBox(height: 20),
@@ -82,7 +95,7 @@ class _ProductivityPageState extends State<ProductivityPage> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF6B7280),
+                  color: Color(0xFF3B82F6),
                   letterSpacing: 0.5,
                 ),
               ),
@@ -101,11 +114,13 @@ class _ProductivityPageState extends State<ProductivityPage> {
                     backgroundColor: Colors.white,
                     selectedColor: _primaryBlue,
                     labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : const Color(0xFF374151),
+                      color: isSelected ? Colors.white : AppThemeTokens.blueEnd,
                       fontWeight: FontWeight.w600,
                     ),
                     side: BorderSide(
-                      color: isSelected ? _primaryBlue : const Color(0xFFE5E7EB),
+                      color: isSelected
+                          ? _primaryBlue
+                          : const Color(0xFFE5E7EB),
                     ),
                   );
                 }).toList(),
@@ -116,7 +131,7 @@ class _ProductivityPageState extends State<ProductivityPage> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF6B7280),
+                  color: Color(0xFF3B82F6),
                   letterSpacing: 0.5,
                 ),
               ),
@@ -144,7 +159,10 @@ class _ProductivityPageState extends State<ProductivityPage> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(28),
                     gradient: const LinearGradient(
-                      colors: [Color(0xFF5B46FF), Color(0xFF7C3AED)],
+                      colors: [
+                        AppThemeTokens.blueStart,
+                        AppThemeTokens.blueEnd,
+                      ],
                     ),
                     boxShadow: [
                       BoxShadow(

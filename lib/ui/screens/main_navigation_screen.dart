@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -14,6 +15,7 @@ import '../../providers/intent_provider.dart';
 import '../../providers/live_provider.dart';
 import '../../providers/post_provider.dart';
 import '../../providers/profile_provider.dart';
+import '../theme/app_theme_tokens.dart';
 import 'intenselectionpage.dart';
 
 class MainNavigationScreen extends StatefulWidget {
@@ -26,13 +28,21 @@ class MainNavigationScreen extends StatefulWidget {
 }
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
+  static const _navItems = <({IconData icon, String label})>[
+    (icon: Icons.home_outlined, label: 'Home'),
+    (icon: Icons.chat_bubble_outline, label: 'Chats'),
+    (icon: Icons.public, label: 'Discover'),
+    (icon: Icons.chat_bubble_outline, label: 'Connections'),
+    (icon: Icons.person_outline, label: 'Profile'),
+  ];
+
   late int _selectedIndex;
 
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex.clamp(0, 4);
-    
+
     // Initialize providers asynchronously without blocking UI
     Future.microtask(() async {
       if (!mounted) return;
@@ -64,21 +74,61 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: pages,
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) => setState(() => _selectedIndex = index),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.favorite_border), label: 'Matches'),
-          NavigationDestination(icon: Icon(Icons.public), label: 'Discover'),
-          NavigationDestination(icon: Icon(Icons.chat_bubble_outline), label: 'Connections'),
-          NavigationDestination(icon: Icon(Icons.person_outline), label: 'Profile'),
-        ],
+      backgroundColor: AppThemeTokens.pageBackgroundWhite,
+      body: IndexedStack(index: _selectedIndex, children: pages),
+      bottomNavigationBar: Container(
+        color: Colors.white,
+        padding: const EdgeInsets.fromLTRB(6, 8, 6, 8),
+        child: SafeArea(
+          top: false,
+          child: Row(
+            children: List.generate(_navItems.length, (index) {
+              final item = _navItems[index];
+              final isSelected = _selectedIndex == index;
+
+              return Expanded(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () => setState(() => _selectedIndex = index),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        isSelected
+                            ? GradientIcon(item.icon, size: 22)
+                            : const SizedBox.shrink(),
+                        if (!isSelected)
+                          Icon(
+                            item.icon,
+                            size: 22,
+                            color: const Color(0xFF6B7280),
+                          ),
+                        const SizedBox(height: 4),
+                        isSelected
+                            ? GradientText(
+                                item.label,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              )
+                            : Text(
+                                item.label,
+                                style: const TextStyle(
+                                  color: Color(0xFF6B7280),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
       ),
     );
   }
@@ -108,9 +158,9 @@ class _FeedPageState extends State<_FeedPage> {
     final postProvider = context.read<PostProvider>();
     final profile = profileProvider.profile;
     if (profile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Complete profile first.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Complete profile first.')));
       return;
     }
 
@@ -133,77 +183,99 @@ class _FeedPageState extends State<_FeedPage> {
         final posts = postProvider.posts;
 
         return SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-                child: Row(
-                  children: [
-                    const Text(
-                      'Circle Feed',
-                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const IntentSelectionPage()),
-                        );
-                      },
-                      icon: const Icon(Icons.tune_rounded),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _postController,
-                        decoration: InputDecoration(
-                          hintText: 'Share what\'s happening...',
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Container(
+            color: Colors.white,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                  child: Row(
+                    children: [
+                      const GradientText(
+                        'CircleUP',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
                         ),
-                        minLines: 1,
-                        maxLines: 3,
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    FilledButton(
-                      onPressed: () => _submitPost(context),
-                      child: const Text('Post'),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: posts.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'No posts yet. Share your first update.',
-                          style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600),
-                        ),
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
-                        itemCount: posts.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          final post = posts[index];
-                          return _PostCard(post: post, currentUserId: currentUserId);
+                      const Spacer(),
+                      IconButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const IntentSelectionPage(),
+                            ),
+                          );
                         },
+                        icon: const Icon(Icons.tune_rounded),
                       ),
-              ),
-            ],
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _postController,
+                          decoration: InputDecoration(
+                            hintText: 'Share what\'s happening...',
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                          ),
+                          minLines: 1,
+                          maxLines: 3,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      FilledButton(
+                        onPressed: () => _submitPost(context),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppThemeTokens.blueEnd,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Post'),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: posts.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'No posts yet. Share your first update.',
+                            style: TextStyle(
+                              color: Color(0xFF6B7280),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
+                          itemCount: posts.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final post = posts[index];
+                            return _PostCard(
+                              post: post,
+                              currentUserId: currentUserId,
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -223,15 +295,19 @@ class _PostCard extends StatelessWidget {
     final isLikedByCurrentUser = post.isLikedBy(currentUserId);
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFF4FAFF), Color(0xFFEAF3FF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: const Color(0xFF1D4ED8).withValues(alpha: 0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -240,7 +316,15 @@ class _PostCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const CircleAvatar(child: Icon(Icons.person)),
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: const Color(0xFFDBEAFF),
+                child: const Icon(
+                  Icons.person,
+                  size: 19,
+                  color: Color(0xFF3B82F6),
+                ),
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -248,37 +332,110 @@ class _PostCard extends StatelessWidget {
                   children: [
                     Text(
                       post.authorName,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 17,
+                        color: Color(0xFF374151),
+                      ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 1),
                     Text(
                       _formatPostDateTime(post.createdAt),
-                      style: const TextStyle(color: Color(0xFF6B7280), fontSize: 12),
+                      style: const TextStyle(
+                        color: Color(0xFF9CA3AF),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
               ),
+              const Icon(Icons.more_horiz, size: 20, color: Color(0xFF9CA3AF)),
             ],
           ),
           const SizedBox(height: 12),
-          Text(post.content, style: const TextStyle(fontSize: 15)),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            decoration: BoxDecoration(
+              gradient: AppThemeTokens.primaryBlueGradient,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Text(
+              '"${post.content}"',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                height: 1.3,
+              ),
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
           const SizedBox(height: 12),
           Row(
             children: [
-              TextButton.icon(
-                onPressed: currentUserId.isEmpty
+              InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: currentUserId.isEmpty
                     ? null
                     : () => postProvider.toggleLike(post.id, currentUserId),
-                icon: Icon(
-                  isLikedByCurrentUser ? Icons.favorite : Icons.favorite_border,
-                  color: isLikedByCurrentUser ? const Color(0xFFEF4444) : const Color(0xFF6B7280),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 2,
+                    vertical: 4,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        isLikedByCurrentUser
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        size: 18,
+                        color: isLikedByCurrentUser
+                            ? const Color(0xFFEF4444)
+                            : const Color(0xFF6B7280),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${post.likesCount}',
+                        style: const TextStyle(
+                          color: Color(0xFF6B7280),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                label: Text('${post.likesCount}'),
               ),
-              TextButton.icon(
-                onPressed: () => postProvider.toggleComment(post.id),
-                icon: const Icon(Icons.chat_bubble_outline),
-                label: Text('${post.commentsCount}'),
+              const SizedBox(width: 22),
+              InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () => postProvider.toggleComment(post.id),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 2,
+                    vertical: 4,
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.chat_bubble_outline,
+                        size: 18,
+                        color: Color(0xFF6B7280),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${post.commentsCount}',
+                        style: const TextStyle(
+                          color: Color(0xFF6B7280),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -302,53 +459,17 @@ class _PostCard extends StatelessWidget {
       'Nov',
       'Dec',
     ];
-    final day = time.day.toString().padLeft(2, '0');
     final month = monthNames[time.month - 1];
-    final year = time.year;
+    final day = time.day;
     final hour12 = time.hour % 12 == 0 ? 12 : time.hour % 12;
     final minute = time.minute.toString().padLeft(2, '0');
     final period = time.hour >= 12 ? 'PM' : 'AM';
-    return '$day $month $year - $hour12:$minute $period';
+    return '$month $day • $hour12:$minute $period';
   }
 }
 
 class _MatchesPage extends StatelessWidget {
   const _MatchesPage();
-
-  int _calculateMatchScore(List<String> myTags, List<String> theirTags) {
-    if (myTags.isEmpty || theirTags.isEmpty) return 65;
-    final overlap = myTags.toSet().intersection(theirTags.toSet()).length;
-    final percentage = (overlap / theirTags.length * 100).round();
-    return percentage.clamp(50, 99);
-  }
-
-  String _getIntentTag(List<String> tags) {
-    if (tags.isEmpty) return 'Network';
-    final tag = tags.first.toLowerCase();
-    if (tag.contains('startup')) return 'STARTUP';
-    if (tag.contains('study')) return 'STUDY';
-    if (tag.contains('fitness')) return 'FITNESS';
-    if (tag.contains('food')) return 'FOOD';
-    if (tag.contains('hobby')) return 'HOBBY';
-    return 'Network';
-  }
-
-  Color _getIntentColor(String tag) {
-    switch (tag) {
-      case 'STARTUP':
-        return const Color(0xFF7C3AED);
-      case 'STUDY':
-        return const Color(0xFF3B82F6);
-      case 'FITNESS':
-        return const Color(0xFF10B981);
-      case 'FOOD':
-        return const Color(0xFFF59E0B);
-      case 'HOBBY':
-        return const Color(0xFFEC4899);
-      default:
-        return const Color(0xFF6B7280);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -364,220 +485,31 @@ class _MatchesPage extends StatelessWidget {
           userName: profile.fullName,
         );
 
-        final requests = connectionsProvider.incomingRequests;
+        final chats = connectionsProvider.connections;
 
         return SafeArea(
-          child: SingleChildScrollView(
+          child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Matches',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Color(0xFF111827)),
+                  'Chats',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF111827),
+                  ),
                 ),
                 const SizedBox(height: 16),
-                if (requests.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(
-                      child: Text(
-                        'No pending requests.',
-                        style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  )
-                else
-                  ...List.generate(requests.length, (index) {
-                    final req = requests[index];
-                    final matchScore = _calculateMatchScore(profile.interests, req.senderTags);
-                    final intentTag = _getIntentTag(req.senderTags);
-                    final intentColor = _getIntentColor(intentTag);
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Header with profile and intent tag
-                            Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 28,
-                                  child: Text(
-                                    req.senderName.isEmpty
-                                        ? '?'
-                                        : req.senderName[0].toUpperCase(),
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 20,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        req.senderName,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        '✓ ${req.senderAge}km away',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Color(0xFF6B7280),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: intentColor.withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    intentTag,
-                                    style: TextStyle(
-                                      color: intentColor,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            // Match score
-                            Row(
-                              children: [
-                                Text(
-                                  '$matchScore%',
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFF2563EB),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                const Text(
-                                  'MATCH SCORE',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF6B7280),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0x1010B981),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Row(
-                                    children: [
-                                      Icon(Icons.check_circle, size: 12, color: Color(0xFF10B981)),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        'Same Intent',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFF10B981),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            // Message
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF3F4F6),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                '"${req.senderTags.join(', ')}"',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontStyle: FontStyle.italic,
-                                  color: Color(0xFF374151),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-                            // Action buttons
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ElevatedButton(
-                                    onPressed: () => connectionsProvider.rejectRequest(req),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFFF3F4F6),
-                                      foregroundColor: const Color(0xFF374151),
-                                      elevation: 0,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
-                                    ),
-                                    child: const Text(
-                                      'Decline',
-                                      style: TextStyle(fontWeight: FontWeight.w600),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: ElevatedButton(
-                                    onPressed: () => connectionsProvider.acceptRequest(req),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF2563EB),
-                                      foregroundColor: Colors.white,
-                                      elevation: 0,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
-                                    ),
-                                    child: const Text(
-                                      'Accept Request',
-                                      style: TextStyle(fontWeight: FontWeight.w600),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }),
+                Expanded(
+                  child: _ChatsList(
+                    chats: chats,
+                    currentUserId: connectionsProvider.currentUserId.isEmpty
+                        ? profile.userId
+                        : connectionsProvider.currentUserId,
+                  ),
+                ),
               ],
             ),
           ),
@@ -614,7 +546,9 @@ class _DiscoverPageState extends State<_DiscoverPage> {
   }
 
   int _matchPercent(LiveUserModel user, ProfileProvider profileProvider) {
-    final myInterests = profileProvider.interests.map((e) => e.toLowerCase().trim()).toSet();
+    final myInterests = profileProvider.interests
+        .map((e) => e.toLowerCase().trim())
+        .toSet();
     final userTags = user.tags.map((e) => e.toLowerCase().trim()).toSet();
     if (myInterests.isEmpty || userTags.isEmpty) {
       return 72;
@@ -633,7 +567,10 @@ class _DiscoverPageState extends State<_DiscoverPage> {
 
     if (users.length == 1) {
       await _mapController!.animateCamera(
-        CameraUpdate.newLatLngZoom(LatLng(users.first.latitude, users.first.longitude), 16),
+        CameraUpdate.newLatLngZoom(
+          LatLng(users.first.latitude, users.first.longitude),
+          16,
+        ),
       );
       return;
     }
@@ -663,7 +600,9 @@ class _DiscoverPageState extends State<_DiscoverPage> {
       northeast: LatLng(maxLat + pad, maxLng + pad),
     );
 
-    await _mapController!.animateCamera(CameraUpdate.newLatLngBounds(bounds, 70));
+    await _mapController!.animateCamera(
+      CameraUpdate.newLatLngBounds(bounds, 70),
+    );
   }
 
   @override
@@ -672,7 +611,9 @@ class _DiscoverPageState extends State<_DiscoverPage> {
       builder: (context, liveProvider, profileProvider, _) {
         const nearbyRadiusKm = 25.0;
         final allUsers = liveProvider.allUsers;
-        final myUserId = profileProvider.profile?.userId;
+        final myUserId =
+            fb_auth.FirebaseAuth.instance.currentUser?.uid ??
+            profileProvider.profile?.userId;
 
         final myLat = liveProvider.myLatitude;
         final myLng = liveProvider.myLongitude;
@@ -719,35 +660,40 @@ class _DiscoverPageState extends State<_DiscoverPage> {
             )
             .toSet();
 
-        final circles = users
-            .map(
-              (user) {
-                final isSelf = myUserId != null && user.userId == myUserId;
-                final color = isSelf ? const Color(0xFF2E5BFF) : const Color(0xFFEF4444);
-                return Circle(
-                  circleId: CircleId('dot_${user.userId}'),
-                  center: LatLng(user.latitude, user.longitude),
-                  radius: isSelf ? 36 : 26,
-                  fillColor: color.withOpacity(0.32),
-                  strokeColor: color,
-                  strokeWidth: isSelf ? 4 : 3,
-                );
-              },
-            )
-            .toSet();
+        final circles = users.map((user) {
+          final isSelf = myUserId != null && user.userId == myUserId;
+          final color = isSelf
+              ? const Color(0xFF2E5BFF)
+              : const Color(0xFFEF4444);
+          return Circle(
+            circleId: CircleId('dot_${user.userId}'),
+            center: LatLng(user.latitude, user.longitude),
+            radius: isSelf ? 36 : 26,
+            fillColor: color.withOpacity(0.32),
+            strokeColor: color,
+            strokeWidth: isSelf ? 4 : 3,
+          );
+        }).toSet();
 
         if (_mapController != null &&
             cameraTargetUsers.isNotEmpty &&
-            (!_cameraAligned || _lastFocusedUserCount != cameraTargetUsers.length)) {
+            (!_cameraAligned ||
+                _lastFocusedUserCount != cameraTargetUsers.length)) {
           _cameraAligned = true;
           _lastFocusedUserCount = cameraTargetUsers.length;
-          _focusCameraOnUsers(users: cameraTargetUsers, myLat: myLat, myLng: myLng);
+          _focusCameraOnUsers(
+            users: cameraTargetUsers,
+            myLat: myLat,
+            myLng: myLng,
+          );
         }
 
         return SafeArea(
           child: GestureDetector(
             behavior: HitTestBehavior.translucent,
-            onTap: selectedUser != null ? () => setState(() => _selectedUserId = null) : null,
+            onTap: selectedUser != null
+                ? () => setState(() => _selectedUserId = null)
+                : null,
             child: Column(
               children: [
                 Padding(
@@ -757,13 +703,16 @@ class _DiscoverPageState extends State<_DiscoverPage> {
                       const CircleAvatar(
                         radius: 18,
                         backgroundColor: Color(0xFF2E5BFF),
-                        child: Icon(Icons.hub_rounded, color: Colors.white, size: 20),
+                        child: Icon(
+                          Icons.hub_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                       const SizedBox(width: 10),
-                      const Text(
-                        'CircleUp',
+                      const GradientText(
+                        'CircleUP',
                         style: TextStyle(
-                          color: Color(0xFF374151),
                           fontSize: 30,
                           fontWeight: FontWeight.w800,
                         ),
@@ -775,15 +724,22 @@ class _DiscoverPageState extends State<_DiscoverPage> {
                 ),
                 Container(
                   margin: const EdgeInsets.fromLTRB(18, 0, 18, 10),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0D9488),
+                    gradient: AppThemeTokens.primaryBlueGradient,
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.people_alt_rounded, color: Colors.white, size: 18),
+                      const Icon(
+                        Icons.people_alt_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         '${nearbyUsers.length} nearby - ${users.length} total users',
@@ -835,16 +791,21 @@ class _DiscoverPageState extends State<_DiscoverPage> {
                                       _mapController = controller;
                                       if (cameraTargetUsers.isNotEmpty) {
                                         _cameraAligned = true;
-                                        _lastFocusedUserCount = cameraTargetUsers.length;
+                                        _lastFocusedUserCount =
+                                            cameraTargetUsers.length;
                                         _focusCameraOnUsers(
                                           users: cameraTargetUsers,
                                           myLat: myLat,
                                           myLng: myLng,
                                         );
-                                      } else if (!_cameraAligned && hasMyLocation) {
+                                      } else if (!_cameraAligned &&
+                                          hasMyLocation) {
                                         _cameraAligned = true;
                                         controller.animateCamera(
-                                          CameraUpdate.newLatLngZoom(LatLng(myLat, myLng), 14),
+                                          CameraUpdate.newLatLngZoom(
+                                            LatLng(myLat, myLng),
+                                            14,
+                                          ),
                                         );
                                       }
                                     },
@@ -859,15 +820,23 @@ class _DiscoverPageState extends State<_DiscoverPage> {
                           bottom: 98,
                           child: _LiveMatchCard(
                             user: selectedUser,
-                            isSelf: myUserId != null && myUserId == selectedUser.userId,
-                            matchPercent: _matchPercent(selectedUser, profileProvider),
-                            onClose: () => setState(() => _selectedUserId = null),
+                            isSelf:
+                                myUserId != null &&
+                                myUserId == selectedUser.userId,
+                            matchPercent: _matchPercent(
+                              selectedUser,
+                              profileProvider,
+                            ),
+                            onClose: () =>
+                                setState(() => _selectedUserId = null),
                             onConnect: () async {
                               final targetUser = selectedUser;
                               if (targetUser == null) return;
                               if (!profileProvider.hasProfile) return;
                               final profile = profileProvider.profile!;
-                              final ok = await context.read<ConnectionsProvider>().sendConnectionRequest(
+                              final ok = await context
+                                  .read<ConnectionsProvider>()
+                                  .sendConnectionRequest(
                                     senderId: profile.userId,
                                     senderName: profile.fullName,
                                     senderAge: profile.age,
@@ -875,9 +844,17 @@ class _DiscoverPageState extends State<_DiscoverPage> {
                                     target: targetUser,
                                   );
                               if (!context.mounted) return;
+                              final requestError = context
+                                  .read<ConnectionsProvider>()
+                                  .lastRequestError;
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(ok ? 'Connection request sent.' : 'Unable to send request.'),
+                                  content: Text(
+                                    ok
+                                        ? 'Connection request sent.'
+                                        : (requestError ??
+                                              'Unable to send request.'),
+                                  ),
                                 ),
                               );
                               if (ok) {
@@ -955,7 +932,10 @@ class _LiveMatchCard extends StatelessWidget {
                     children: [
                       Text(
                         '${user.name}, ${user.age}',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -981,12 +961,18 @@ class _LiveMatchCard extends StatelessWidget {
               children: user.tags
                   .map(
                     (tag) => Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(18),
                       ),
-                      child: Text(tag, style: const TextStyle(fontWeight: FontWeight.w600)),
+                      child: Text(
+                        tag,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
                     ),
                   )
                   .toList(),
@@ -995,7 +981,10 @@ class _LiveMatchCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFE0F2FE),
                     borderRadius: BorderRadius.circular(20),
@@ -1047,7 +1036,8 @@ class _ConnectionsPageState extends State<_ConnectionsPage> {
           userName: profile.fullName,
         );
 
-        final requests = connectionsProvider.incomingRequests;
+        final incomingRequests = connectionsProvider.incomingRequests;
+        final outgoingRequests = connectionsProvider.outgoingRequests;
         final chats = connectionsProvider.connections;
 
         return SafeArea(
@@ -1065,12 +1055,14 @@ class _ConnectionsPageState extends State<_ConnectionsPage> {
                   segments: [
                     ButtonSegment<int>(
                       value: 0,
-                      label: Text('Requests (${requests.length})'),
+                      label: Text(
+                        'Requests (${incomingRequests.length + outgoingRequests.length})',
+                      ),
                       icon: const Icon(Icons.inbox_outlined),
                     ),
                     ButtonSegment<int>(
                       value: 1,
-                      label: Text('Chats (${chats.length})'),
+                      label: Text('Connections (${chats.length})'),
                       icon: const Icon(Icons.chat_bubble_outline),
                     ),
                   ],
@@ -1080,8 +1072,18 @@ class _ConnectionsPageState extends State<_ConnectionsPage> {
                 const SizedBox(height: 14),
                 Expanded(
                   child: _tab == 0
-                      ? _RequestsList(requests: requests)
-                      : _ChatsList(chats: chats, currentUserId: profile.userId),
+                      ? _RequestsList(
+                          incomingRequests: incomingRequests,
+                          outgoingRequests: outgoingRequests,
+                          myInterests: profile.interests,
+                        )
+                      : _ConnectionsProfilesList(
+                          chats: chats,
+                          currentUserId:
+                              connectionsProvider.currentUserId.isEmpty
+                              ? profile.userId
+                              : connectionsProvider.currentUserId,
+                        ),
                 ),
               ],
             ),
@@ -1093,66 +1095,336 @@ class _ConnectionsPageState extends State<_ConnectionsPage> {
 }
 
 class _RequestsList extends StatelessWidget {
-  const _RequestsList({required this.requests});
+  const _RequestsList({
+    required this.incomingRequests,
+    required this.outgoingRequests,
+    required this.myInterests,
+  });
 
-  final List<ConnectionRequestItem> requests;
+  final List<ConnectionRequestItem> incomingRequests;
+  final List<ConnectionRequestItem> outgoingRequests;
+  final List<String> myInterests;
+
+  int _calculateMatchScore(List<String> myTags, List<String> theirTags) {
+    if (myTags.isEmpty || theirTags.isEmpty) return 65;
+    final overlap = myTags.toSet().intersection(theirTags.toSet()).length;
+    final percentage = (overlap / theirTags.length * 100).round();
+    return percentage.clamp(50, 99);
+  }
+
+  String _getIntentTag(List<String> tags) {
+    if (tags.isEmpty) return 'Network';
+    final tag = tags.first.toLowerCase();
+    if (tag.contains('startup')) return 'STARTUP';
+    if (tag.contains('study')) return 'STUDY';
+    if (tag.contains('fitness')) return 'FITNESS';
+    if (tag.contains('food')) return 'FOOD';
+    if (tag.contains('hobby')) return 'HOBBY';
+    return 'Network';
+  }
+
+  Color _getIntentColor(String tag) {
+    switch (tag) {
+      case 'STARTUP':
+        return const Color(0xFF7C3AED);
+      case 'STUDY':
+        return const Color(0xFF3B82F6);
+      case 'FITNESS':
+        return const Color(0xFF10B981);
+      case 'FOOD':
+        return const Color(0xFFF59E0B);
+      case 'HOBBY':
+        return const Color(0xFFEC4899);
+      default:
+        return const Color(0xFF6B7280);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final provider = context.read<ConnectionsProvider>();
+    final allRequests = <ConnectionRequestItem>[
+      ...incomingRequests,
+      ...outgoingRequests,
+    ];
 
-    if (requests.isEmpty) {
+    if (allRequests.isEmpty) {
       return const Center(
         child: Text(
           'No pending requests.',
-          style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: Color(0xFF6B7280),
+            fontWeight: FontWeight.w600,
+          ),
         ),
       );
     }
 
-    return ListView.separated(
-      itemCount: requests.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (context, index) {
-        final request = requests[index];
-        return Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
+    return ListView(
+      children: [
+        if (incomingRequests.isNotEmpty) ...[
+          const Padding(
+            padding: EdgeInsets.only(bottom: 8),
+            child: Text(
+              'Received requests',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF374151),
+              ),
+            ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${request.senderName}, ${request.senderAge}',
-                style: const TextStyle(fontWeight: FontWeight.w800),
+          ...incomingRequests.map((request) {
+            final matchScore = _calculateMatchScore(
+              myInterests,
+              request.senderTags,
+            );
+            final intentTag = _getIntentTag(request.senderTags);
+            final intentColor = _getIntentColor(intentTag);
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 28,
+                          child: Text(
+                            request.senderName.isEmpty
+                                ? '?'
+                                : request.senderName[0].toUpperCase(),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 20,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                request.senderName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${request.senderAge} yrs',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF6B7280),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: intentColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            intentTag,
+                            style: TextStyle(
+                              color: intentColor,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Text(
+                          '$matchScore%',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF2563EB),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'MATCH SCORE',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF6B7280),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F4F6),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '"${request.senderTags.join(', ')}"',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontStyle: FontStyle.italic,
+                          color: Color(0xFF374151),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => provider.rejectRequest(request),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFF3F4F6),
+                              foregroundColor: const Color(0xFF374151),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: const Text(
+                              'Decline',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => provider.acceptRequest(request),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2563EB),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: const Text(
+                              'Accept Request',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 4),
-              Wrap(
-                spacing: 8,
-                children: request.senderTags
-                    .map((tag) => Chip(label: Text(tag), visualDensity: VisualDensity.compact))
-                    .toList(),
+            );
+          }),
+        ],
+        if (outgoingRequests.isNotEmpty) ...[
+          const Padding(
+            padding: EdgeInsets.only(bottom: 8),
+            child: Text(
+              'Sent requests',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF374151),
               ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  OutlinedButton(
-                    onPressed: () => provider.rejectRequest(request),
-                    child: const Text('Reject'),
-                  ),
-                  const SizedBox(width: 8),
-                  FilledButton(
-                    onPressed: () => provider.acceptRequest(request),
-                    child: const Text('Accept'),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
-        );
-      },
+          ...outgoingRequests.map(
+            (request) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 24,
+                      backgroundColor: const Color(0xFFDBEAFF),
+                      child: Text(
+                        request.receiverName.isEmpty
+                            ? '?'
+                            : request.receiverName[0].toUpperCase(),
+                        style: const TextStyle(
+                          color: Color(0xFF2563EB),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            request.receiverName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                              color: Color(0xFF111827),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Pending acceptance',
+                            style: const TextStyle(
+                              color: Color(0xFF6B7280),
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => provider.cancelRequest(request),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFFEF4444),
+                      ),
+                      child: const Text('Cancel'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
@@ -1169,7 +1441,10 @@ class _ChatsList extends StatelessWidget {
       return const Center(
         child: Text(
           'No active chats yet.',
-          style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: Color(0xFF6B7280),
+            fontWeight: FontWeight.w600,
+          ),
         ),
       );
     }
@@ -1182,8 +1457,13 @@ class _ChatsList extends StatelessWidget {
         final partnerName = chat.partnerNameFor(currentUserId);
         return ListTile(
           tileColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          title: Text(partnerName, style: const TextStyle(fontWeight: FontWeight.w700)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          title: Text(
+            partnerName,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
           subtitle: Text(
             chat.lastMessage.isEmpty ? 'Start chatting' : chat.lastMessage,
             maxLines: 1,
@@ -1200,6 +1480,139 @@ class _ChatsList extends StatelessWidget {
               ),
             );
           },
+        );
+      },
+    );
+  }
+}
+
+class _ConnectionsProfilesList extends StatelessWidget {
+  const _ConnectionsProfilesList({
+    required this.chats,
+    required this.currentUserId,
+  });
+
+  final List<ConnectionItem> chats;
+  final String currentUserId;
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.read<ConnectionsProvider>();
+
+    if (chats.isEmpty) {
+      return const Center(
+        child: Text(
+          'No connections yet.',
+          style: TextStyle(
+            color: Color(0xFF6B7280),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      itemCount: chats.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (context, index) {
+        final chat = chats[index];
+        final partnerName = chat.partnerNameFor(currentUserId);
+
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: const Color(0xFFDBEAFF),
+                child: Text(
+                  partnerName.isEmpty ? '?' : partnerName[0].toUpperCase(),
+                  style: const TextStyle(
+                    color: Color(0xFF2563EB),
+                    fontWeight: FontWeight.w800,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      partnerName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        color: Color(0xFF111827),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      chat.lastMessage.isEmpty ? 'Connected' : chat.lastMessage,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF6B7280),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) {
+                      return AlertDialog(
+                        title: const Text('Remove Connection'),
+                        content: Text('Remove connection with $partnerName?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(false),
+                            child: const Text('Cancel'),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.of(ctx).pop(true),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFFEF4444),
+                              foregroundColor: Colors.white,
+                            ),
+                            child: const Text('Remove'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+
+                  if (confirmed == true) {
+                    await provider.removeConnection(chat.id);
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Connection removed.')),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.person_remove_alt_1_outlined, size: 18),
+                label: const Text('Remove'),
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFFEF4444),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -1254,7 +1667,10 @@ class _ConnectionChatScreenState extends State<_ConnectionChatScreen> {
                   return const Center(
                     child: Text(
                       'No messages yet.',
-                      style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        color: Color(0xFF6B7280),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   );
                 }
@@ -1269,17 +1685,28 @@ class _ConnectionChatScreenState extends State<_ConnectionChatScreen> {
                     final text = (data['text'] as String?) ?? '';
                     final mine = senderId == widget.currentUserId;
                     return Align(
-                      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+                      alignment: mine
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
                       child: Container(
                         margin: const EdgeInsets.symmetric(vertical: 4),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
-                          color: mine ? const Color(0xFF2563EB) : const Color(0xFFE5E7EB),
+                          color: mine
+                              ? const Color(0xFF2563EB)
+                              : const Color(0xFFE5E7EB),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           text,
-                          style: TextStyle(color: mine ? Colors.white : const Color(0xFF111827)),
+                          style: TextStyle(
+                            color: mine
+                                ? Colors.white
+                                : const Color(0xFF111827),
+                          ),
                         ),
                       ),
                     );
@@ -1314,10 +1741,10 @@ class _ConnectionChatScreenState extends State<_ConnectionChatScreen> {
                       final text = _controller.text.trim();
                       if (text.isEmpty) return;
                       await context.read<ConnectionsProvider>().sendMessage(
-                            connectionId: widget.connection.id,
-                            senderId: widget.currentUserId,
-                            text: text,
-                          );
+                        connectionId: widget.connection.id,
+                        senderId: widget.currentUserId,
+                        text: text,
+                      );
                       if (!mounted) return;
                       _controller.clear();
                     },
@@ -1361,10 +1788,10 @@ class _ProfilePageState extends State<_ProfilePage> {
     if (content.isEmpty) return;
 
     await context.read<PostProvider>().addPost(
-          userId: userId,
-          authorName: authorName,
-          content: content,
-        );
+      userId: userId,
+      authorName: authorName,
+      content: content,
+    );
 
     if (!mounted) return;
     _profilePostController.clear();
@@ -1387,114 +1814,232 @@ class _ProfilePageState extends State<_ProfilePage> {
         );
 
         return SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Profile',
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
+          child: Container(
+            color: Colors.white,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const GradientText(
+                    'Profile',
+                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
                   ),
-                  child: Row(
-                    children: [
-                      _ProfileAvatar(photoPath: profile.photoPath, name: profile.fullName),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              profile.fullName,
-                              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
-                            ),
-                            const SizedBox(height: 4),
-                            Text('${profile.age} - ${profile.city}'),
-                            const SizedBox(height: 4),
-                            Text(profile.collegeOrProfession),
-                          ],
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: AppThemeTokens.primaryBlueGradient,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppThemeTokens.blueEnd.withValues(alpha: 0.18),
+                          blurRadius: 14,
+                          offset: const Offset(0, 6),
                         ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        _ProfileAvatar(
+                          photoPath: profile.photoPath,
+                          name: profile.fullName,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                profile.fullName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 18,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${profile.age} - ${profile.city}',
+                                style: const TextStyle(
+                                  color: Color(0xFFE0ECFF),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                profile.collegeOrProfession,
+                                style: const TextStyle(
+                                  color: Color(0xFFE0ECFF),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: AppThemeTokens.primaryBlueGradient,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppThemeTokens.blueEnd.withValues(alpha: 0.18),
+                          blurRadius: 14,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.people_alt_rounded,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Connections: ${connectionsProvider.connectionCount}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: profile.interests
+                        .map(
+                          (interest) => Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: AppThemeTokens.primaryBlueGradient,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              interest,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(28),
+                      border: Border.all(color: const Color(0xFFBFDBFE)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _ProfileSectionChip(
+                          label: 'Posts',
+                          icon: Icons.view_agenda_outlined,
+                          selected: _section == _ProfileContentSection.posts,
+                          onTap: () => setState(
+                            () => _section = _ProfileContentSection.posts,
+                          ),
+                        ),
+                        _ProfileSectionChip(
+                          label: 'Grid',
+                          icon: Icons.grid_view_rounded,
+                          selected: _section == _ProfileContentSection.grid,
+                          onTap: () => setState(
+                            () => _section = _ProfileContentSection.grid,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  if (_section == _ProfileContentSection.posts)
+                    _ProfilePostsSection(
+                      posts: myPosts,
+                      currentUserId: profile.userId,
+                      postController: _profilePostController,
+                      onPost: () => _submitProfilePost(
+                        context: context,
+                        userId: profile.userId,
+                        authorName: profile.fullName,
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.people_alt_rounded),
-                      const SizedBox(width: 10),
-                      Text(
-                        'Connections: ${connectionsProvider.connectionCount}',
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: profile.interests.map((interest) => Chip(label: Text(interest))).toList(),
-                ),
-                const SizedBox(height: 16),
-                SegmentedButton<_ProfileContentSection>(
-                  segments: const [
-                    ButtonSegment<_ProfileContentSection>(
-                      value: _ProfileContentSection.posts,
-                      icon: Icon(Icons.view_agenda_outlined),
-                      label: Text('Posts'),
+                    )
+                  else
+                    _ProfileGridSection(
+                      posts: myPosts,
+                      currentUserId: profile.userId,
+                      postProvider: postProvider,
                     ),
-                    ButtonSegment<_ProfileContentSection>(
-                      value: _ProfileContentSection.grid,
-                      icon: Icon(Icons.grid_view_rounded),
-                      label: Text('Grid'),
-                    ),
-                  ],
-                  selected: {_section},
-                  onSelectionChanged: (selection) {
-                    setState(() {
-                      _section = selection.first;
-                    });
-                  },
-                ),
-                const SizedBox(height: 14),
-                if (_section == _ProfileContentSection.posts)
-                  _ProfilePostsSection(
-                    posts: myPosts,
-                    currentUserId: profile.userId,
-                    postController: _profilePostController,
-                    onPost: () => _submitProfilePost(
-                      context: context,
-                      userId: profile.userId,
-                      authorName: profile.fullName,
-                    ),
-                  )
-                else
-                  _ProfileGridSection(
-                    posts: myPosts,
-                    currentUserId: profile.userId,
-                    postProvider: postProvider,
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         );
       },
+    );
+  }
+}
+
+class _ProfileSectionChip extends StatelessWidget {
+  const _ProfileSectionChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(24),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+        decoration: BoxDecoration(
+          gradient: selected ? AppThemeTokens.primaryBlueGradient : null,
+          color: selected ? null : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: selected ? Colors.white : AppThemeTokens.blueEnd,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: selected ? Colors.white : AppThemeTokens.blueEnd,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1530,24 +2075,57 @@ class _ProfilePostsSection extends StatelessWidget {
             Expanded(
               child: TextField(
                 controller: postController,
+                style: const TextStyle(
+                  color: AppThemeTokens.blueEnd,
+                  fontWeight: FontWeight.w600,
+                ),
                 decoration: InputDecoration(
                   hintText: 'Share what\'s on your mind...',
+                  hintStyle: const TextStyle(color: Color(0xFF60A5FA)),
                   filled: true,
                   fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
+                  border: const OutlineInputBorder(
+                    borderSide: BorderSide(color: Color(0xFFBFDBFE)),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: Color(0xFFBFDBFE)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(
+                      color: AppThemeTokens.blueEnd,
+                      width: 1.6,
+                    ),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                 ),
                 minLines: 1,
                 maxLines: 3,
               ),
             ),
             const SizedBox(width: 10),
-            FilledButton(
-              onPressed: onPost,
-              child: const Text('Post'),
+            Container(
+              height: 40,
+              decoration: BoxDecoration(
+                gradient: AppThemeTokens.primaryBlueGradient,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: FilledButton(
+                onPressed: onPost,
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text(
+                  'Post',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
             ),
           ],
         ),
@@ -1558,7 +2136,10 @@ class _ProfilePostsSection extends StatelessWidget {
             child: Center(
               child: Text(
                 'No posts yet.',
-                style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  color: Color(0xFF6B7280),
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           )
@@ -1586,9 +2167,9 @@ class _ProfileGridSection extends StatelessWidget {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 24),
         child: Center(
-          child: Text(
+          child: GradientText(
             'No grid items yet.',
-            style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600),
+            style: TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
       );
@@ -1613,18 +2194,25 @@ class _ProfileGridSection extends StatelessWidget {
 }
 
 class _ProfileGridTile extends StatelessWidget {
-  const _ProfileGridTile({
-    required this.post,
-    required this.onDelete,
-  });
+  const _ProfileGridTile({required this.post, required this.onDelete});
 
   final UserPostModel post;
   final VoidCallback onDelete;
 
   String _formatPostDateTime(DateTime time) {
     const monthNames = <String>[
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     final day = time.day.toString().padLeft(2, '0');
     final month = monthNames[time.month - 1];
@@ -1639,13 +2227,13 @@ class _ProfileGridTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: AppThemeTokens.primaryBlueGradient,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: AppThemeTokens.blueEnd.withValues(alpha: 0.18),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -1665,6 +2253,7 @@ class _ProfileGridTile extends StatelessWidget {
                       style: const TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 13,
+                        color: Colors.white,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1673,7 +2262,7 @@ class _ProfileGridTile extends StatelessWidget {
                       _formatPostDateTime(post.createdAt),
                       style: const TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF6B7280),
+                        color: Color(0xFFDCE8FF),
                       ),
                     ),
                   ],
@@ -1684,13 +2273,13 @@ class _ProfileGridTile extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEF4444).withOpacity(0.1),
+                    color: Colors.white.withValues(alpha: 0.24),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: const Icon(
                     Icons.delete_outline,
                     size: 16,
-                    color: Color(0xFFEF4444),
+                    color: Colors.white,
                   ),
                 ),
               ),
@@ -1706,6 +2295,7 @@ class _ProfileGridTile extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
+                color: Colors.white,
               ),
             ),
           ),
@@ -1713,18 +2303,26 @@ class _ProfileGridTile extends StatelessWidget {
           // Engagement stats
           Row(
             children: [
-              const Icon(Icons.favorite_border, size: 14, color: Color(0xFF6B7280)),
+              const Icon(
+                Icons.favorite_border,
+                size: 14,
+                color: Color(0xFFDCE8FF),
+              ),
               const SizedBox(width: 3),
               Text(
                 '${post.likesCount}',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                style: const TextStyle(fontSize: 12, color: Color(0xFFDCE8FF)),
               ),
               const SizedBox(width: 10),
-              const Icon(Icons.chat_bubble_outline, size: 14, color: Color(0xFF6B7280)),
+              const Icon(
+                Icons.chat_bubble_outline,
+                size: 14,
+                color: Color(0xFFDCE8FF),
+              ),
               const SizedBox(width: 3),
               Text(
                 '${post.commentsCount}',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                style: const TextStyle(fontSize: 12, color: Color(0xFFDCE8FF)),
               ),
             ],
           ),
@@ -1750,9 +2348,13 @@ class _ProfileAvatar extends StatelessWidget {
     }
     return CircleAvatar(
       radius: 34,
+      backgroundColor: Colors.white.withValues(alpha: 0.88),
       child: Text(
         name.isEmpty ? '?' : name[0].toUpperCase(),
-        style: const TextStyle(fontWeight: FontWeight.w700),
+        style: const TextStyle(
+          fontWeight: FontWeight.w700,
+          color: AppThemeTokens.blueEnd,
+        ),
       ),
     );
   }

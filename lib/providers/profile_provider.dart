@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import '../models/profile_model.dart';
 import '../services/database_helper.dart';
@@ -68,6 +69,10 @@ class ProfileProvider with ChangeNotifier {
   }) async {
     try {
       String? userId = await PrefsHelper.getUserId();
+      final authUid = FirebaseAuth.instance.currentUser?.uid;
+      if (authUid != null && authUid.isNotEmpty) {
+        userId = authUid;
+      }
       userId ??= 'local_${DateTime.now().millisecondsSinceEpoch}';
 
       await PrefsHelper.saveUserId(userId);
@@ -91,7 +96,9 @@ class ProfileProvider with ChangeNotifier {
       try {
         await DatabaseHelper.instance.upsertUserProfile(_profile!);
       } catch (e) {
-        debugPrint('Database profile save failed, using prefs fallback only: $e');
+        debugPrint(
+          'Database profile save failed, using prefs fallback only: $e',
+        );
       }
 
       // Also save to prefs as backup
@@ -102,22 +109,22 @@ class ProfileProvider with ChangeNotifier {
       // Keep a cloud user document for global map discovery.
       if (Firebase.apps.isNotEmpty) {
         try {
-          await FirebaseFirestore.instance.collection(_usersCollection).doc(userId).set(
-            {
-              'userId': userId,
-              'name': fullName,
-              'age': age,
-              'intent': 'Available',
-              'tags': interests,
-              'latitude': 0,
-              'longitude': 0,
-              'distanceKm': 0,
-              'isLive': false,
-              'city': city,
-              'updatedAt': Timestamp.fromDate(DateTime.now()),
-            },
-            SetOptions(merge: true),
-          );
+          await FirebaseFirestore.instance
+              .collection(_usersCollection)
+              .doc(userId)
+              .set({
+                'userId': userId,
+                'name': fullName,
+                'age': age,
+                'intent': 'Available',
+                'tags': interests,
+                'latitude': 0,
+                'longitude': 0,
+                'distanceKm': 0,
+                'isLive': false,
+                'city': city,
+                'updatedAt': Timestamp.fromDate(DateTime.now()),
+              }, SetOptions(merge: true));
         } catch (e) {
           debugPrint('Cloud user profile sync failed: $e');
         }

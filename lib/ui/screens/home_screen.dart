@@ -7,14 +7,14 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('CircleUp'),
+        title: const Text('CircleUP'),
         actions: [
           IconButton(
             icon: const Icon(Icons.person),
             onPressed: () {
               // TODO: Navigate to profile
             },
-          )
+          ),
         ],
       ),
       body: Center(
@@ -43,7 +43,7 @@ class HomeScreen extends StatelessWidget {
                 Navigator.pushNamed(context, '/intent');
               },
               child: const Text('Choose Intent'),
-            )
+            ),
           ],
         ),
       ),

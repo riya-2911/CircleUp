@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../theme/app_theme_tokens.dart';
+
 import '../../../providers/live_provider.dart';
 import '../../../providers/profile_provider.dart';
 import '../main_navigation_screen.dart';
@@ -13,12 +15,19 @@ class HangoutPage extends StatefulWidget {
 }
 
 class _HangoutPageState extends State<HangoutPage> {
-  static const _primaryBlue = Color(0xFF5B46FF);
-  static const _pageBg = Color(0xFFF7F8FC);
+  static const _primaryBlue = AppThemeTokens.blueEnd;
+  static const _pageBg = AppThemeTokens.pageBackgroundWhite;
   String? _selectedActivity;
   String? _selectedVibe;
 
-  static const _activities = ['Coffee', 'Movies', 'Food', 'Gaming', 'Walk', 'Party'];
+  static const _activities = [
+    'Coffee',
+    'Movies',
+    'Food',
+    'Gaming',
+    'Walk',
+    'Party',
+  ];
   static const _vibes = ['Chill', 'Fun', 'Social', 'Deep Talk'];
 
   Future<void> _goLive() async {
@@ -31,12 +40,16 @@ class _HangoutPageState extends State<HangoutPage> {
     if (!mounted) return;
     if (!didGoLive) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please allow GPS/location permission to go live.')),
+        const SnackBar(
+          content: Text('Please allow GPS/location permission to go live.'),
+        ),
       );
       return;
     }
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const MainNavigationScreen(initialIndex: 2)),
+      MaterialPageRoute(
+        builder: (_) => const MainNavigationScreen(initialIndex: 2),
+      ),
       (_) => false,
     );
   }
@@ -68,7 +81,7 @@ class _HangoutPageState extends State<HangoutPage> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF1F2937),
+                  color: AppThemeTokens.blueEnd,
                 ),
               ),
               const SizedBox(height: 24),
@@ -77,7 +90,7 @@ class _HangoutPageState extends State<HangoutPage> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF6B7280),
+                  color: Color(0xFF3B82F6),
                   letterSpacing: 0.5,
                 ),
               ),
@@ -91,16 +104,20 @@ class _HangoutPageState extends State<HangoutPage> {
                     label: Text(activity),
                     selected: isSelected,
                     onSelected: (selected) {
-                      setState(() => _selectedActivity = selected ? activity : null);
+                      setState(
+                        () => _selectedActivity = selected ? activity : null,
+                      );
                     },
                     backgroundColor: Colors.white,
                     selectedColor: _primaryBlue,
                     labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : const Color(0xFF374151),
+                      color: isSelected ? Colors.white : AppThemeTokens.blueEnd,
                       fontWeight: FontWeight.w600,
                     ),
                     side: BorderSide(
-                      color: isSelected ? _primaryBlue : const Color(0xFFE5E7EB),
+                      color: isSelected
+                          ? _primaryBlue
+                          : const Color(0xFFE5E7EB),
                     ),
                   );
                 }).toList(),
@@ -111,7 +128,7 @@ class _HangoutPageState extends State<HangoutPage> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF6B7280),
+                  color: Color(0xFF3B82F6),
                   letterSpacing: 0.5,
                 ),
               ),
@@ -130,11 +147,13 @@ class _HangoutPageState extends State<HangoutPage> {
                     backgroundColor: Colors.white,
                     selectedColor: _primaryBlue,
                     labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : const Color(0xFF374151),
+                      color: isSelected ? Colors.white : AppThemeTokens.blueEnd,
                       fontWeight: FontWeight.w600,
                     ),
                     side: BorderSide(
-                      color: isSelected ? _primaryBlue : const Color(0xFFE5E7EB),
+                      color: isSelected
+                          ? _primaryBlue
+                          : const Color(0xFFE5E7EB),
                     ),
                   );
                 }).toList(),
@@ -145,7 +164,7 @@ class _HangoutPageState extends State<HangoutPage> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF6B7280),
+                  color: Color(0xFF3B82F6),
                   letterSpacing: 0.5,
                 ),
               ),
@@ -172,7 +191,10 @@ class _HangoutPageState extends State<HangoutPage> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(28),
                     gradient: const LinearGradient(
-                      colors: [Color(0xFF5B46FF), Color(0xFF7C3AED)],
+                      colors: [
+                        AppThemeTokens.blueStart,
+                        AppThemeTokens.blueEnd,
+                      ],
                     ),
                     boxShadow: [
                       BoxShadow(

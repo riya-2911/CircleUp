@@ -13,10 +13,24 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isGoogleLoading = false;
 
   Future<void> _continueAsLocalUser(String source) async {
-    final seed = DateTime.now().millisecondsSinceEpoch;
+    await AuthService.signInAnonymously();
+    final uid = AuthService.currentUser?.uid;
+    if (uid == null || uid.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to initialize account. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     await PrefsHelper.setOnboardingCompleted();
-    await PrefsHelper.saveUserId('local_$seed');
-    await PrefsHelper.saveUserName(source == 'phone' ? 'Phone User' : 'Student User');
+    await PrefsHelper.saveUserId(uid);
+    await PrefsHelper.saveUserName(
+      source == 'phone' ? 'Phone User' : 'Student User',
+    );
     if (!mounted) return;
     Navigator.pushReplacementNamed(context, '/profile-setup');
   }
@@ -27,8 +41,23 @@ class _LoginScreenState extends State<LoginScreen> {
       final success = await AuthService.signInWithGoogle();
       if (success && mounted) {
         await PrefsHelper.setOnboardingCompleted();
-        final userId = AuthService.currentUser?.uid ?? 'local_${DateTime.now().millisecondsSinceEpoch}';
-        final displayName = AuthService.displayName.trim().isEmpty ? 'User' : AuthService.displayName;
+        final userId = AuthService.currentUser?.uid;
+        if (userId == null || userId.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Authentication not ready. Please try signing in again.',
+                ),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+        final displayName = AuthService.displayName.trim().isEmpty
+            ? 'User'
+            : AuthService.displayName;
         await PrefsHelper.saveUserId(userId);
         await PrefsHelper.saveUserName(displayName);
         Navigator.pushReplacementNamed(context, '/profile-setup');
@@ -43,10 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -93,11 +119,15 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ],
                           ),
-                          child: const Icon(Icons.hub, color: Colors.white, size: 32),
+                          child: const Icon(
+                            Icons.hub,
+                            color: Colors.white,
+                            size: 32,
+                          ),
                         ),
                         const SizedBox(height: 16),
                         const Text(
-                          'CircleUp',
+                          'CircleUP',
                           style: TextStyle(
                             color: Color(0xFF1E1E1E),
                             fontSize: 18,
@@ -109,7 +139,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         // Welcome Text
                         const Text(
-                          'Welcome to\nCircleUp',
+                          'Welcome to\nCircleUP',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Color(0xFF1E1E1E),
@@ -147,7 +177,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             icon: const Icon(Icons.phone_iphone, size: 20),
                             label: const Text(
                               'Continue with phone number',
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
@@ -157,12 +190,32 @@ class _LoginScreenState extends State<LoginScreen> {
                         // OR divider
                         Row(
                           children: [
-                            Expanded(child: Divider(color: Colors.grey.withOpacity(0.25), thickness: 1)),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              child: Text('OR', style: TextStyle(color: Colors.grey.withOpacity(0.6), fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                            Expanded(
+                              child: Divider(
+                                color: Colors.grey.withOpacity(0.25),
+                                thickness: 1,
+                              ),
                             ),
-                            Expanded(child: Divider(color: Colors.grey.withOpacity(0.25), thickness: 1)),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              child: Text(
+                                'OR',
+                                style: TextStyle(
+                                  color: Colors.grey.withOpacity(0.6),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Divider(
+                                color: Colors.grey.withOpacity(0.25),
+                                thickness: 1,
+                              ),
+                            ),
                           ],
                         ),
 
@@ -180,7 +233,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         // Continue with College Email
                         _SocialButton(
-                          icon: const Icon(Icons.school, color: Color(0xFF2940FF), size: 22),
+                          icon: const Icon(
+                            Icons.school,
+                            color: Color(0xFF2940FF),
+                            size: 22,
+                          ),
                           label: 'Continue with college email',
                           isLoading: false,
                           onTap: () => _continueAsLocalUser('college'),
@@ -214,9 +271,18 @@ class _LoginScreenState extends State<LoginScreen> {
                                     height: 28,
                                     child: Stack(
                                       children: [
-                                        _buildAvatarCircle(0, const Color(0xFFFF7F50)),
-                                        _buildAvatarCircle(22, const Color(0xFF4CAF50)),
-                                        _buildAvatarCircle(44, const Color(0xFF2196F3)),
+                                        _buildAvatarCircle(
+                                          0,
+                                          const Color(0xFFFF7F50),
+                                        ),
+                                        _buildAvatarCircle(
+                                          22,
+                                          const Color(0xFF4CAF50),
+                                        ),
+                                        _buildAvatarCircle(
+                                          44,
+                                          const Color(0xFF2196F3),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -224,8 +290,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                   Row(
                                     children: [
                                       Container(
-                                        width: 8, height: 8,
-                                        decoration: const BoxDecoration(color: Color(0xFF00C48C), shape: BoxShape.circle),
+                                        width: 8,
+                                        height: 8,
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFF00C48C),
+                                          shape: BoxShape.circle,
+                                        ),
                                       ),
                                       const SizedBox(width: 6),
                                       const Text(
@@ -263,7 +333,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: Text.rich(
                             TextSpan(
                               text: 'By tapping Continue, you agree to our ',
-                              style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF), height: 1.5),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF9CA3AF),
+                                height: 1.5,
+                              ),
                               children: [
                                 TextSpan(
                                   text: 'Terms of Service',
@@ -282,7 +356,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                     decoration: TextDecoration.underline,
                                   ),
                                 ),
-                                TextSpan(text: '. We use your email only to verify your student status.'),
+                                TextSpan(
+                                  text:
+                                      '. We use your email only to verify your student status.',
+                                ),
                               ],
                             ),
                             textAlign: TextAlign.center,
@@ -305,7 +382,8 @@ class _LoginScreenState extends State<LoginScreen> {
     return Positioned(
       left: left,
       child: Container(
-        width: 28, height: 28,
+        width: 28,
+        height: 28,
         decoration: BoxDecoration(
           color: color,
           shape: BoxShape.circle,
@@ -353,8 +431,12 @@ class _SocialButton extends StatelessWidget {
           children: [
             if (isLoading)
               const SizedBox(
-                width: 20, height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFF2940FF)),
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: Color(0xFF2940FF),
+                ),
               )
             else
               icon,
@@ -378,7 +460,8 @@ class _GoogleIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 22, height: 22,
+      width: 22,
+      height: 22,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: Colors.white,
