@@ -12,6 +12,15 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   bool _isGoogleLoading = false;
 
+  Future<void> _continueAsLocalUser(String source) async {
+    final seed = DateTime.now().millisecondsSinceEpoch;
+    await PrefsHelper.setOnboardingCompleted();
+    await PrefsHelper.saveUserId('local_$seed');
+    await PrefsHelper.saveUserName(source == 'phone' ? 'Phone User' : 'Student User');
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, '/profile-setup');
+  }
+
   Future<void> _handleGoogleSignIn() async {
     setState(() => _isGoogleLoading = true);
     try {
@@ -35,7 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Sign-in failed: ${e.toString()}'),
+            content: Text(e.toString()),
             backgroundColor: Colors.red,
           ),
         );
@@ -126,7 +135,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           width: double.infinity,
                           height: 56,
                           child: ElevatedButton.icon(
-                            onPressed: () {},
+                            onPressed: () => _continueAsLocalUser('phone'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: primaryBlue,
                               foregroundColor: Colors.white,
@@ -174,7 +183,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           icon: const Icon(Icons.school, color: Color(0xFF2940FF), size: 22),
                           label: 'Continue with college email',
                           isLoading: false,
-                          onTap: () {},
+                          onTap: () => _continueAsLocalUser('college'),
                         ),
 
                         const SizedBox(height: 32),

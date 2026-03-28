@@ -1,28 +1,31 @@
-  // --- POSTS CRUD ---
+
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+import '../models/profile_model.dart';
+import '../models/user_post_model.dart';
+
+// --- POSTS CRUD ---
   Future<void> insertPost(UserPostModel post) async {
-    final db = await instance.database;
+    final db = await DatabaseHelper.instance.database;
     await db.insert('posts', post.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<List<UserPostModel>> getAllPosts() async {
-    final db = await instance.database;
+    final db = await DatabaseHelper.instance.database;
     final result = await db.query('posts', orderBy: 'createdAt DESC');
     return result.map((e) => UserPostModel.fromMap(e)).toList();
   }
 
   Future<List<UserPostModel>> getPostsByUser(String userId) async {
-    final db = await instance.database;
+    final db = await DatabaseHelper.instance.database;
     final result = await db.query('posts', where: 'userId = ?', whereArgs: [userId], orderBy: 'createdAt DESC');
     return result.map((e) => UserPostModel.fromMap(e)).toList();
   }
 
   Future<void> clearPosts() async {
-    final db = await instance.database;
+    final db = await DatabaseHelper.instance.database;
     await db.delete('posts');
   }
-import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
-import '../models/profile_model.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -42,7 +45,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 6,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -97,7 +100,12 @@ CREATE TABLE posts (
   userId $textType,
   authorName $textType,
   content $textType,
-  createdAt $integerType
+  createdAt $integerType,
+  likesCount INTEGER NOT NULL DEFAULT 0,
+  commentsCount INTEGER NOT NULL DEFAULT 0,
+  isLiked INTEGER NOT NULL DEFAULT 0,
+  isCommented INTEGER NOT NULL DEFAULT 0,
+  likedByUserIdsCsv TEXT NOT NULL DEFAULT ''
 )
 ''');
   }
@@ -144,9 +152,21 @@ CREATE TABLE IF NOT EXISTS user_profiles (
         userId TEXT NOT NULL,
         authorName TEXT NOT NULL,
         content TEXT NOT NULL,
-        createdAt INTEGER NOT NULL
+        createdAt INTEGER NOT NULL,
+        likesCount INTEGER NOT NULL DEFAULT 0,
+        commentsCount INTEGER NOT NULL DEFAULT 0,
+        isLiked INTEGER NOT NULL DEFAULT 0,
+        isCommented INTEGER NOT NULL DEFAULT 0
       )
       ''');
+    }
+
+    if (oldVersion < 5) {
+      await _ensurePostsColumns(db);
+    }
+
+    if (oldVersion < 6) {
+      await _ensurePostsColumns(db);
     }
   }
 
@@ -221,5 +241,48 @@ CREATE TABLE IF NOT EXISTS user_profiles (
   Future<void> close() async {
     final db = await instance.database;
     db.close();
+  }
+
+  Future<void> ensurePostsTable() async {
+    final db = await instance.database;
+    await db.execute('''
+    CREATE TABLE IF NOT EXISTS posts (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      authorName TEXT NOT NULL,
+      content TEXT NOT NULL,
+      createdAt INTEGER NOT NULL,
+      likesCount INTEGER NOT NULL DEFAULT 0,
+      commentsCount INTEGER NOT NULL DEFAULT 0,
+      isLiked INTEGER NOT NULL DEFAULT 0,
+      isCommented INTEGER NOT NULL DEFAULT 0,
+      likedByUserIdsCsv TEXT NOT NULL DEFAULT ''
+    )
+    ''');
+    await _ensurePostsColumns(db);
+  }
+
+  Future<void> _ensurePostsColumns(Database db) async {
+    final tableInfo = await db.rawQuery('PRAGMA table_info(posts)');
+    final existingColumns = tableInfo
+        .map((row) => (row['name'] ?? '').toString())
+        .where((name) => name.isNotEmpty)
+        .toSet();
+
+    if (!existingColumns.contains('likesCount')) {
+      await db.execute('ALTER TABLE posts ADD COLUMN likesCount INTEGER NOT NULL DEFAULT 0');
+    }
+    if (!existingColumns.contains('commentsCount')) {
+      await db.execute('ALTER TABLE posts ADD COLUMN commentsCount INTEGER NOT NULL DEFAULT 0');
+    }
+    if (!existingColumns.contains('isLiked')) {
+      await db.execute('ALTER TABLE posts ADD COLUMN isLiked INTEGER NOT NULL DEFAULT 0');
+    }
+    if (!existingColumns.contains('isCommented')) {
+      await db.execute('ALTER TABLE posts ADD COLUMN isCommented INTEGER NOT NULL DEFAULT 0');
+    }
+    if (!existingColumns.contains('likedByUserIdsCsv')) {
+      await db.execute("ALTER TABLE posts ADD COLUMN likedByUserIdsCsv TEXT NOT NULL DEFAULT ''");
+    }
   }
 }

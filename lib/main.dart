@@ -16,6 +16,8 @@ import 'providers/auth_provider.dart';
 import 'providers/intent_provider.dart';
 import 'providers/profile_provider.dart';
 import 'providers/post_provider.dart';
+import 'providers/live_provider.dart';
+import 'providers/connections_provider.dart';
 
 import 'package:flutter/foundation.dart';
 
@@ -44,10 +46,12 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()..checkLoginStatus()),
-        ChangeNotifierProvider(create: (_) => IntentProvider()..loadSavedIntent()),
-        ChangeNotifierProvider(create: (_) => ProfileProvider()..loadProfile()),
-        ChangeNotifierProvider(create: (_) => PostProvider()..loadPosts()),
+          ChangeNotifierProvider(create: (_) => AuthProvider()),
+          ChangeNotifierProvider(create: (_) => IntentProvider()),
+          ChangeNotifierProvider(create: (_) => ProfileProvider()),
+          ChangeNotifierProvider(create: (_) => PostProvider()),
+          ChangeNotifierProvider(create: (_) => LiveProvider()),
+          ChangeNotifierProvider(create: (_) => ConnectionsProvider()),
       ],
       child: const CircleUpApp(),
     ),

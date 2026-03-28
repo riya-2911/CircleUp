@@ -1,10 +1,14 @@
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import '../models/profile_model.dart';
 import '../services/database_helper.dart';
 import '../services/prefs_helper.dart';
 import 'dart:convert';
 
 class ProfileProvider with ChangeNotifier {
+  static const String _usersCollection = 'users';
+
   ProfileModel? _profile;
 
   ProfileModel? get profile => _profile;
@@ -94,6 +98,30 @@ class ProfileProvider with ChangeNotifier {
       final payload = jsonEncode(_profile!.toMap());
       await PrefsHelper.saveProfilePayload(payload);
       await PrefsHelper.setProfileSetupCompleted();
+
+      // Keep a cloud user document for global map discovery.
+      if (Firebase.apps.isNotEmpty) {
+        try {
+          await FirebaseFirestore.instance.collection(_usersCollection).doc(userId).set(
+            {
+              'userId': userId,
+              'name': fullName,
+              'age': age,
+              'intent': 'Available',
+              'tags': interests,
+              'latitude': 0,
+              'longitude': 0,
+              'distanceKm': 0,
+              'isLive': false,
+              'city': city,
+              'updatedAt': Timestamp.fromDate(DateTime.now()),
+            },
+            SetOptions(merge: true),
+          );
+        } catch (e) {
+          debugPrint('Cloud user profile sync failed: $e');
+        }
+      }
 
       notifyListeners();
     } catch (e) {
